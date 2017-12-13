@@ -36,21 +36,21 @@ async function main() {
   await awsAuth.authenticate();
   console.log(await awsLoader.loadClusters());
   console.log(await awsLoader.loadDeployments());
-  try {
-    await awsCluster.createCluster({
-      name: "test",
-      region: "ap-southeast-2",
-      ec2InstanceCount: 1,
-      ec2InstanceType: "t2.micro"
-    });
-  } catch {}
-  try {
-    await awsDeployment.deploy(deploymentSpec, "mydeployment");
-  } catch {}
+  await awsCluster.createCluster({
+    name: "test",
+    region: "ap-southeast-2",
+    ec2InstanceCount: 1,
+    ec2InstanceType: "t2.micro"
+  });
+  await awsDeployment.deploy(deploymentSpec, "mydeployment");
   await awsDeployment.destroy(
     deploymentSpec.cluster.region,
     deploymentSpec.cluster.name,
     "mydeployment"
+  );
+  await awsCluster.destroy(
+    deploymentSpec.cluster.region,
+    deploymentSpec.cluster.name
   );
   await localLauncher.deploy(deploymentSpec);
 }

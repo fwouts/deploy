@@ -1,15 +1,18 @@
-import * as autoScalingGroups from "./resources/autoscalinggroups";
-import * as autoScalingLaunchConfigs from "./resources/autoscalinglaunchconfigs";
-import * as clusters from "./resources/clusters";
+import * as CloudFormation from "aws-sdk/clients/cloudformation";
 import * as console from "../console";
 import * as deployModel from "../deploymodel";
+import * as images from "./resources/images";
 import * as securityGroups from "./resources/securitygroups";
-import * as services from "./resources/services";
-import * as tags from "./resources/tags";
 import * as vpcs from "./resources/vpcs";
 
+import { AWS } from "cloudformation-declarations";
+
+const btoa = require("btoa");
+
+const ECS_INSTANCE_ROLE_NAME = "ecsInstanceRole";
+
 export interface CreateClusterResult {
-  clusterArn: string;
+  clusterName: string;
   launchConfigurationName: string;
   autoScalingGroupName: string;
 }
@@ -17,169 +20,104 @@ export interface CreateClusterResult {
 export async function createCluster(
   clusterSpec: deployModel.ClusterSpec
 ): Promise<CreateClusterResult> {
-  let clusterArn = null;
   let names = getResourceNames(clusterSpec.name);
-  let launchConfigurationCreated = false;
-  let autoScalingGroupCreated = false;
-  let clusterTags = [tags.SHARED_TAG, tags.clusterNameTag(clusterSpec.name)];
 
-  try {
-    // Set up cluster.
-    console.logInfo(`Setting up cluster ${clusterSpec.name}...`);
-    clusterArn = await clusters.createCluster(
-      clusterSpec.region,
-      clusterSpec.name
-    );
-    console.logInfo(`✔ Created empty ECS cluster ${clusterSpec.name}.`);
+  // Get the default VPC. Create it if necessary.
+  console.logInfo(`Looking up default VPC and subnets...`);
+  let vpc = await vpcs.getDefaultVpcAndSubnets(clusterSpec.region);
+  console.logInfo(`✔ Using default VPC with ID ${vpc.id}.`);
 
-    // Get the default VPC. Create it if necessary.
-    console.logInfo(`Looking up default VPC and subnets...`);
-    let vpc = await vpcs.getDefaultVpcAndSubnets(clusterSpec.region);
-    console.logInfo(`✔ Using default VPC with ID ${vpc.id}.`);
+  // Get default security group.
+  console.logInfo(`Getting default security group...`);
+  let defaultSecurityGroupId = await securityGroups.getDefaultSecurityGroupId(
+    clusterSpec.region,
+    vpc.id
+  );
+  console.logInfo(
+    `✔ Using default security group with ID ${defaultSecurityGroupId}.`
+  );
 
-    // Get default security group.
-    console.logInfo(`Getting default security group...`);
-    let defaultSecurityGroupId = await securityGroups.getDefaultSecurityGroupId(
-      clusterSpec.region,
-      vpc.id
-    );
-    console.logInfo(
-      `✔ Using default security group with ID ${defaultSecurityGroupId}.`
-    );
+  // Get ECS image ID.
+  console.logInfo(`Getting ECS optimized AMI...`);
+  let imageId = await images.getEcsImageId(clusterSpec.region);
+  console.logInfo(`✔ Using AMI ${imageId}.`);
 
-    console.logInfo(
-      `Creating auto scaling launch configuration ${
-        names.launchConfiguration
-      }...`
-    );
-    await autoScalingLaunchConfigs.createAutoScalingLaunchConfiguration(
-      clusterSpec.region,
-      names.launchConfiguration,
-      clusterSpec.name,
-      clusterSpec.ec2InstanceType,
-      defaultSecurityGroupId
-    );
-    launchConfigurationCreated = true;
-    console.logInfo(
-      `✔ Created auto scaling launch configuration ${
-        names.launchConfiguration
-      }.`
-    );
-
-    console.logInfo(`Creating auto scaling group ${names.autoScalingGroup}...`);
-    await autoScalingGroups.createAutoScalingGroup(
-      clusterSpec.region,
-      names.autoScalingGroup,
-      names.launchConfiguration,
-      names.instance,
-      clusterSpec.ec2InstanceCount,
-      clusterSpec.ec2InstanceCount,
-      vpc.subnetIds,
-      clusterTags
-    );
-    autoScalingGroupCreated = true;
-    console.logInfo(`✔ Created auto scaling group ${names.autoScalingGroup}.`);
-
-    console.logSuccess(`Cluster ${clusterSpec.name} created successfully.`);
-    return {
-      clusterArn,
-      launchConfigurationName: names.launchConfiguration,
-      autoScalingGroupName: names.autoScalingGroup
-    };
-  } catch (e) {
-    console.logError(e);
-    if (autoScalingGroupCreated) {
-      console.logInfo(
-        `Rolling back auto scaling group ${names.autoScalingGroup}...`
-      );
-      try {
-        await autoScalingGroups.destroyAutoScalingGroup(
-          clusterSpec.region,
-          names.autoScalingGroup
-        );
-        console.logInfo(
-          `✔ Destroyed auto scaling group ${names.autoScalingGroup}.`
-        );
-      } catch {
-        console.logInfo(`Could not roll back ${names.autoScalingGroup}.`);
-      }
+  let cloudFormation = new CloudFormation({
+    region: clusterSpec.region
+  });
+  let cluster: AWS.ECS.Cluster = {
+    Type: "AWS::ECS::Cluster",
+    Properties: {
+      ClusterName: clusterSpec.name
     }
-    if (launchConfigurationCreated) {
-      console.logInfo(
-        `Rolling back auto scaling launch configuration ${
-          names.launchConfiguration
-        }...`
-      );
-      try {
-        await autoScalingLaunchConfigs.destroyAutoScalingLaunchConfiguration(
-          clusterSpec.region,
-          names.launchConfiguration
-        );
-        console.logInfo(
-          `✔ Destroyed auto scaling launch configuration ${
-            names.launchConfiguration
-          }.`
-        );
-      } catch {
-        console.logInfo(`Could not roll back ${names.launchConfiguration}.`);
-      }
+  };
+  // TODO: Fail with a helpful message if ecsInstanceRole is not available.
+  let autoScalingLaunchConfiguration: AWS.AutoScaling.LaunchConfiguration = {
+    Type: "AWS::AutoScaling::LaunchConfiguration",
+    Properties: {
+      InstanceType: clusterSpec.ec2InstanceType,
+      ImageId: imageId,
+      SecurityGroups: [defaultSecurityGroupId],
+      IamInstanceProfile: ECS_INSTANCE_ROLE_NAME,
+      UserData: btoa(
+        `#!/bin/bash
+echo ECS_CLUSTER=${clusterSpec.name} >> /etc/ecs/ecs.config`
+      )
     }
-    if (clusterArn) {
-      console.logInfo(`Rolling back cluster ${clusterSpec.name}...`);
-      try {
-        await clusters.destroyCluster(clusterSpec.region, clusterArn);
-        console.logInfo(`✔ Destroyed cluster ${clusterSpec.name}.`);
-      } catch {
-        console.logInfo(`Could not roll back ${clusterSpec.name}.`);
-      }
+  };
+  let autoScalingGroup: AWS.AutoScaling.AutoScalingGroup = {
+    Type: "AWS::AutoScaling::AutoScalingGroup",
+    Properties: {
+      LaunchConfigurationName: {
+        Ref: "autoScalingLaunchConfiguration"
+      } as any,
+      MinSize: clusterSpec.ec2InstanceCount.toString(10),
+      MaxSize: clusterSpec.ec2InstanceCount.toString(10),
+      VPCZoneIdentifier: vpc.subnetIds
     }
-    throw new console.AlreadyLoggedError(e);
-  }
+  };
+  let cloudFormationTemplate = {
+    AWSTemplateFormatVersion: "2010-09-09",
+    Resources: {
+      cluster,
+      autoScalingLaunchConfiguration,
+      autoScalingGroup
+    }
+  };
+  await cloudFormation
+    .createStack({
+      StackName: names.cloudFormationStack,
+      TemplateBody: JSON.stringify(cloudFormationTemplate, null, 2)
+    })
+    .promise();
+  console.logSuccess(`Cluster ${clusterSpec.name} created successfully.`);
+  return {
+    clusterName: clusterSpec.name,
+    launchConfigurationName: names.launchConfiguration,
+    autoScalingGroupName: names.autoScalingGroup
+  };
 }
 
-export async function destroy(region: string, clusterArn: string) {
-  let cluster = await clusters.getCluster(region, clusterArn);
-  let names = getResourceNames(cluster.name);
-  console.logInfo(`Destroying services in cluster ${cluster.name}...`);
-  let serviceArns = await services.getServicesInCluster(region, clusterArn);
-  let destroyedServiceCount = 0;
-  for (let serviceArn of serviceArns) {
-    await services.destroyService(region, clusterArn, serviceArn);
-    destroyedServiceCount++;
-  }
+export async function destroy(region: string, clusterName: string) {
+  let names = getResourceNames(clusterName);
+  let cloudFormation = new CloudFormation({
+    region: region
+  });
   console.logInfo(
-    `✔ Destroyed ${destroyedServiceCount} service${
-      destroyedServiceCount === 1 ? "" : "s"
-    }.`
+    `Deleting CloudFormation stack ${names.cloudFormationStack}...`
   );
-  console.logInfo(`Destroying cluster ${cluster.name}...`);
-  await clusters.destroyCluster(region, clusterArn);
-  console.logInfo(`✔ Destroyed cluster ${cluster.name}.`);
-  console.logInfo(`Destroying auto scaling group ${names.autoScalingGroup}...`);
-  await autoScalingGroups.destroyAutoScalingGroup(
-    region,
-    names.autoScalingGroup
-  );
-  console.logInfo(`✔ Destroyed auto scaling group ${names.autoScalingGroup}.`);
-  console.logInfo(
-    `Destroying auto scaling launch configuration ${
-      names.launchConfiguration
-    }...`
-  );
-  await autoScalingLaunchConfigs.destroyAutoScalingLaunchConfiguration(
-    region,
-    names.launchConfiguration
-  );
-  console.logInfo(
-    `✔ Destroyed auto scaling launch configuration ${
-      names.launchConfiguration
-    }.`
-  );
-  console.logSuccess(`Cluster ${cluster.name} destroyed successfully.`);
+  await cloudFormation
+    .deleteStack({
+      StackName: names.cloudFormationStack
+    })
+    .promise();
+  console.logInfo(`✔ Deleted CloudFormation stack ${clusterName}.`);
+  console.logSuccess(`Cluster ${clusterName} destroyed successfully.`);
 }
 
 export function getResourceNames(clusterName: string) {
   return {
+    cloudFormationStack: "cluster-" + clusterName,
     launchConfiguration: clusterName + "-launchconfig",
     autoScalingGroup: clusterName + "-autoscalinggroup",
     instance: clusterName + "-instance"
