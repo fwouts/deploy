@@ -1,3 +1,5 @@
+import "source-map-support/register";
+
 import * as awsAuth from "./service/aws/auth";
 import * as awsCluster from "./service/aws/cluster";
 import * as awsDeployment from "./service/aws/deployment";
