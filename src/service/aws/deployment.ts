@@ -3,12 +3,8 @@ import * as clusters from "./resources/clusters";
 import * as console from "../console";
 import * as deployModel from "../deploymodel";
 import * as docker from "../docker";
-import * as loadBalancers from "./resources/loadbalancers";
 import * as repositories from "./resources/repositories";
 import * as securityGroups from "./resources/securitygroups";
-import * as services from "./resources/services";
-import * as targetGroups from "./resources/targetgroups";
-import * as taskDefinitions from "./resources/taskdefinitions";
 import * as vpcs from "./resources/vpcs";
 
 import { AWS } from "cloudformation-declarations";
@@ -292,13 +288,16 @@ export async function destroy(
   deploymentId: string
 ) {
   let names = getResourceNames(deploymentId);
-  // TODO: Error handling around each step.
-  console.logInfo(`Deregistering task definition ${names.taskDefinition}...`);
-  await taskDefinitions.deregisterTaskDefinition(region, names.taskDefinition);
-  console.logInfo(`✔ Deregistered task definition ${names.taskDefinition}.`);
-  console.logInfo(`Destroying service ${names.service}...`);
-  await services.destroyService(region, clusterName, names.service);
-  console.logInfo(`✔ Destroyed service ${names.service}.`);
+  let cloudFormation = new CloudFormation({
+    region: region
+  });
+  console.logInfo(`Deleting CloudFormation stack ${deploymentId}...`);
+  await cloudFormation
+    .deleteStack({
+      StackName: deploymentId
+    })
+    .promise();
+  console.logInfo(`✔ Deleted CloudFormation stack ${deploymentId}.`);
   console.logInfo(
     `Deleting Docker image ${names.repository}:${names.remoteDockerImageTag}...`
   );
@@ -309,26 +308,6 @@ export async function destroy(
   );
   console.logInfo(
     `✔ Deleted Docker image ${names.repository}:${names.remoteDockerImageTag}.`
-  );
-  console.logInfo(`Destroying load balancer ${names.loadBalancer}...`);
-  await loadBalancers.destroyLoadBalancer(region, names.loadBalancer);
-  console.logInfo(`✔ Destroyed load balancer ${names.loadBalancer}.`);
-  console.logInfo(`Deleting target group ${names.targetGroup}...`);
-  await targetGroups.deleteTargetGroup(region, names.targetGroup);
-  console.logInfo(`✔ Destroyed target group ${names.targetGroup}.`);
-  console.logInfo(
-    `Deleting load balancer security group ${
-      names.loadBalancerSecurityGroup
-    }...`
-  );
-  await securityGroups.deleteLoadBalancerSecurityGroup(
-    region,
-    names.loadBalancerSecurityGroup
-  );
-  console.logInfo(
-    `✔ Destroyed load balancer security group ${
-      names.loadBalancerSecurityGroup
-    }`
   );
   console.logSuccess(`Destroyed deployment ${deploymentId} successfully.`);
 }

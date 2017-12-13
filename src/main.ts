@@ -47,6 +47,11 @@ async function main() {
   try {
     await awsDeployment.deploy(deploymentSpec, "mydeployment");
   } catch {}
+  await awsDeployment.destroy(
+    deploymentSpec.cluster.region,
+    deploymentSpec.cluster.name,
+    "mydeployment"
+  );
   await localLauncher.deploy(deploymentSpec);
 }
 
