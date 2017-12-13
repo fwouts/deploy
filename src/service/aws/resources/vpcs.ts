@@ -1,4 +1,4 @@
-import * as AWS from "aws-sdk";
+import * as EC2 from "aws-sdk/clients/ec2";
 
 export interface Vpc {
   id: string;
@@ -6,11 +6,11 @@ export interface Vpc {
 }
 
 export async function getDefaultVpcAndSubnets(region: string): Promise<Vpc> {
-  let ec2 = new AWS.EC2({
+  let ec2 = new EC2({
     region: region
   });
   let vpcsDescription = await ec2.describeVpcs().promise();
-  let defaultVpc: AWS.EC2.Vpc | null = null;
+  let defaultVpc: EC2.Vpc | null = null;
   for (let vpc of vpcsDescription.Vpcs || []) {
     if (vpc.IsDefault) {
       defaultVpc = vpc;

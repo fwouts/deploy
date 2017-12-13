@@ -1,4 +1,5 @@
-import * as AWS from "aws-sdk";
+import * as AutoScaling from "aws-sdk/clients/autoscaling";
+import * as EC2 from "aws-sdk/clients/ec2";
 import * as tags from "./tags";
 
 export async function createAutoScalingGroup(
@@ -11,7 +12,7 @@ export async function createAutoScalingGroup(
   subnetIds: string[],
   tags: tags.Tag[]
 ): Promise<void> {
-  let autoscaling = new AWS.AutoScaling({
+  let autoscaling = new AutoScaling({
     region: region
   });
   await autoscaling
@@ -39,10 +40,10 @@ export async function createAutoScalingGroup(
 }
 
 export async function destroyAutoScalingGroup(region: string, name: string) {
-  let autoscaling = new AWS.AutoScaling({
+  let autoscaling = new AutoScaling({
     region: region
   });
-  let ec2 = new AWS.EC2({
+  let ec2 = new EC2({
     region: region
   });
   let autoScalingGroupsDescription = await autoscaling

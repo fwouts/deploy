@@ -1,4 +1,6 @@
-import * as AWS from "aws-sdk";
+import * as AutoScaling from "aws-sdk/clients/autoscaling";
+import * as ECS from "aws-sdk/clients/ecs";
+import * as ELBv2 from "aws-sdk/clients/elbv2";
 import * as _ from "lodash";
 import * as clusterUtil from "./cluster";
 import * as regions from "./resources/regions";
@@ -24,7 +26,7 @@ export async function loadClusters(): Promise<Cluster[]> {
 }
 
 async function loadClustersFromRegion(region: string): Promise<Cluster[]> {
-  let ecs = new AWS.ECS({
+  let ecs = new ECS({
     region: region
   });
   let clusterArns = await loadUntilEnd(async token => {
@@ -59,7 +61,7 @@ async function loadClustersFromRegion(region: string): Promise<Cluster[]> {
 
 async function loadCluster(
   region: string,
-  cluster: AWS.ECS.Cluster
+  cluster: ECS.Cluster
 ): Promise<Cluster> {
   if (
     !cluster.clusterArn ||
@@ -69,7 +71,7 @@ async function loadCluster(
     throw new Error("Cluster is missing key properties");
   }
   let names = clusterUtil.getResourceNames(cluster.clusterName);
-  let autoscaling = new AWS.AutoScaling({
+  let autoscaling = new AutoScaling({
     region: region
   });
   let autoScalingGroupDescription = await autoscaling
@@ -163,7 +165,7 @@ interface LoadBalancer {
 async function loadLoadBalancersFromRegion(
   region: string
 ): Promise<LoadBalancer[]> {
-  let elb = new AWS.ELBv2({
+  let elb = new ELBv2({
     region: region
   });
   let loadBalancerDescriptions = await loadUntilEnd(async token => {

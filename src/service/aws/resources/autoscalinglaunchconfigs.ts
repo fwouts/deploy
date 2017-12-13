@@ -1,4 +1,5 @@
-import * as AWS from "aws-sdk";
+import * as AutoScaling from "aws-sdk/clients/autoscaling";
+import * as EC2 from "aws-sdk/clients/ec2";
 
 const btoa = require("btoa");
 
@@ -11,10 +12,10 @@ export async function createAutoScalingLaunchConfiguration(
   instanceType: string,
   securityGroupId: string
 ): Promise<void> {
-  let autoscaling = new AWS.AutoScaling({
+  let autoscaling = new AutoScaling({
     region: region
   });
-  let ec2 = new AWS.EC2({
+  let ec2 = new EC2({
     region: region
   });
   let imagesDescription = await ec2
@@ -89,7 +90,7 @@ export async function destroyAutoScalingLaunchConfiguration(
   region: string,
   name: string
 ) {
-  let autoscaling = new AWS.AutoScaling({
+  let autoscaling = new AutoScaling({
     region: region
   });
   let autoScalingLaunchConfigurationsDescription = await autoscaling

@@ -1,4 +1,5 @@
-import * as AWS from "aws-sdk";
+import * as ELBv2 from "aws-sdk/clients/elbv2";
+import * as Route53 from "aws-sdk/clients/route53";
 import * as console from "../console";
 
 export async function switchRoute53(
@@ -7,7 +8,7 @@ export async function switchRoute53(
   domain: string,
   subdomain: string
 ): Promise<void> {
-  let route53 = new AWS.Route53();
+  let route53 = new Route53();
   let hostedZonesList = await route53
     .listHostedZonesByName({
       DNSName: domain
@@ -18,7 +19,7 @@ export async function switchRoute53(
   }
   let hostedZoneId = hostedZonesList.HostedZones[0].Id;
   let elbName = deploymentId + "-loadbalancer";
-  let elb = new AWS.ELBv2({
+  let elb = new ELBv2({
     region: region
   });
   let loadBalancersDescription = await elb

@@ -1,4 +1,4 @@
-import * as AWS from "aws-sdk";
+import * as ECR from "aws-sdk/clients/ecr";
 
 const atob = require("atob");
 
@@ -8,7 +8,7 @@ export interface AuthConfig {
 }
 
 export async function getAuthConfig(region: string): Promise<AuthConfig> {
-  let ecr = new AWS.ECR({
+  let ecr = new ECR({
     region: region
   });
   let authTokenResponse = await ecr.getAuthorizationToken().promise();
@@ -38,7 +38,7 @@ export interface Repository {
 }
 
 export async function getOrCreateRepository(region: string, name: string) {
-  let ecr = new AWS.ECR({
+  let ecr = new ECR({
     region: region
   });
   try {
@@ -85,7 +85,7 @@ export async function getOrCreateRepository(region: string, name: string) {
 }
 
 export async function deleteImage(region: string, name: string, tag: string) {
-  let ecr = new AWS.ECR({
+  let ecr = new ECR({
     region: region
   });
   await ecr

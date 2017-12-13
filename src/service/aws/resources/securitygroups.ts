@@ -1,4 +1,4 @@
-import * as AWS from "aws-sdk";
+import * as EC2 from "aws-sdk/clients/ec2";
 import * as tags from "./tags";
 
 export interface SecurityGroup {
@@ -11,7 +11,7 @@ export async function createLoadBalancerSecurityGroup(
   vpcId: string,
   tags: tags.Tag[]
 ): Promise<SecurityGroup> {
-  let ec2 = new AWS.EC2({
+  let ec2 = new EC2({
     region: region
   });
   let securityGroup = await ec2
@@ -36,7 +36,7 @@ export async function createLoadBalancerSecurityGroup(
 }
 
 export async function getDefaultSecurityGroupId(region: string, vpcId: string) {
-  let ec2 = new AWS.EC2({
+  let ec2 = new EC2({
     region: region
   });
   // It's not possible to create a custom security group with the name "default", and it's
@@ -65,7 +65,7 @@ export async function configureSecurityGroups(
   defaultSecurityGroupId: string,
   publicLoadBalancerPorts: number[]
 ): Promise<void> {
-  let ec2 = new AWS.EC2({
+  let ec2 = new EC2({
     region: region
   });
   // Configuration of the ELB security group, used by the load balancer.
@@ -127,7 +127,7 @@ export async function deleteLoadBalancerSecurityGroup(
   name: string
 ) {
   await deleteNetworkInterfacesForSecurityGroup(region, name);
-  let ec2 = new AWS.EC2({
+  let ec2 = new EC2({
     region: region
   });
   let securityGroupsDescription = await ec2
@@ -204,7 +204,7 @@ async function deleteNetworkInterfacesForSecurityGroup(
   region: string,
   securityGroupName: string
 ) {
-  let ec2 = new AWS.EC2({
+  let ec2 = new EC2({
     region: region
   });
   let mustWait: boolean;

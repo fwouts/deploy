@@ -1,4 +1,4 @@
-import * as AWS from "aws-sdk";
+import * as ELBv2 from "aws-sdk/clients/elbv2";
 import * as tags from "./tags";
 
 export interface TargetGroup {
@@ -13,7 +13,7 @@ export async function createTargetGroup(
   allocatedLoadBalancerPort: number,
   tags: tags.Tag[]
 ): Promise<TargetGroup> {
-  let elb = new AWS.ELBv2({
+  let elb = new ELBv2({
     region: region
   });
   let targetGroupCreation = await elb
@@ -47,7 +47,7 @@ export async function createTargetGroup(
 }
 
 export async function deleteTargetGroup(region: string, name: string) {
-  let elb = new AWS.ELBv2({
+  let elb = new ELBv2({
     region: region
   });
   let targetGroupsDescription = await elb

@@ -1,4 +1,4 @@
-import * as AWS from "aws-sdk";
+import * as ELBv2 from "aws-sdk/clients/elbv2";
 import * as tags from "./tags";
 
 export interface LoadBalancer {
@@ -14,7 +14,7 @@ export async function createLoadBalancer(
   elbSecurityGroupId: string,
   tags: tags.Tag[]
 ): Promise<LoadBalancer> {
-  let elb = new AWS.ELBv2({
+  let elb = new ELBv2({
     region: region
   });
   let loadBalancerCreation = await elb
@@ -57,7 +57,7 @@ export async function createListener(
   loadBalancerPort: number,
   targetGroupArn: string
 ): Promise<Listener> {
-  let elb = new AWS.ELBv2({
+  let elb = new ELBv2({
     region: region
   });
   let listenerCreation = await elb
@@ -86,7 +86,7 @@ export async function createListener(
 }
 
 export async function destroyLoadBalancer(region: string, name: string) {
-  let elb = new AWS.ELBv2({
+  let elb = new ELBv2({
     region: region
   });
   let loadBalancersDescription = await elb

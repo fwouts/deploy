@@ -1,4 +1,4 @@
-import * as AWS from "aws-sdk";
+import * as ECS from "aws-sdk/clients/ecs";
 import * as loader from "../loader";
 
 export interface Service {
@@ -16,7 +16,7 @@ export async function createService(
   desiredCount: number,
   containerPort: number
 ): Promise<Service> {
-  let ecs = new AWS.ECS({
+  let ecs = new ECS({
     region: region
   });
   let serviceCreation = await ecs
@@ -51,7 +51,7 @@ export async function getServicesInCluster(
   region: string,
   clusterArn: string
 ): Promise<string[]> {
-  let ecs = new AWS.ECS({
+  let ecs = new ECS({
     region
   });
   let serviceArns = await loader.loadUntilEnd(async token => {
@@ -74,7 +74,7 @@ export async function destroyService(
   clusterArnOrName: string,
   serviceArnOrName: string
 ) {
-  let ecs = new AWS.ECS({
+  let ecs = new ECS({
     region
   });
   let servicesDescription = await ecs

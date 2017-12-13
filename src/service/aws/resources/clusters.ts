@@ -1,4 +1,4 @@
-import * as AWS from "aws-sdk";
+import * as ECS from "aws-sdk/clients/ecs";
 import * as loader from "../loader";
 
 export interface Cluster {
@@ -10,7 +10,7 @@ export async function getCluster(
   region: string,
   clusterNameOrArn: string
 ): Promise<Cluster> {
-  let ecs = new AWS.ECS({
+  let ecs = new ECS({
     region: region
   });
   let clusters = await ecs
@@ -37,7 +37,7 @@ export async function createCluster(
   name: string
 ): Promise<string> {
   // TODO: Double check the name's format.
-  let ecs = new AWS.ECS({
+  let ecs = new ECS({
     region: region
   });
   let existingClusterDescription = await ecs
@@ -68,7 +68,7 @@ export async function createCluster(
 }
 
 export async function destroyCluster(region: string, clusterArn: string) {
-  let ecs = new AWS.ECS({
+  let ecs = new ECS({
     region
   });
   let clusterDescription = await ecs

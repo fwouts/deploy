@@ -1,4 +1,4 @@
-import * as AWS from "aws-sdk";
+import * as ECS from "aws-sdk/clients/ecs";
 
 export interface TaskDefinition {
   arn: string;
@@ -16,10 +16,10 @@ export async function createTaskDefinition(
   containerCpuUnits: number | undefined,
   environment: { [key: string]: string }
 ): Promise<TaskDefinition> {
-  let ecs = new AWS.ECS({
+  let ecs = new ECS({
     region: region
   });
-  let environmentVariables: AWS.ECS.EnvironmentVariables = [];
+  let environmentVariables: ECS.EnvironmentVariables = [];
   for (let [key, value] of Object.entries(environment)) {
     environmentVariables.push({
       name: key,
@@ -60,7 +60,7 @@ export async function createTaskDefinition(
 }
 
 export async function deregisterTaskDefinition(region: string, name: string) {
-  let ecs = new AWS.ECS({
+  let ecs = new ECS({
     region
   });
   let taskDefinitionFamiliesList = await ecs
