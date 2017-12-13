@@ -2,8 +2,7 @@
   "name": "deploy-cli",
   "version": "0.0.4",
   "author": "Francois Wouts <f@zenc.io>",
-  "license": "UNLICENSED",
-  "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "nodemon -e ts -w src/ --exec 'ts-node src/main.ts || exit 1'"
   },
