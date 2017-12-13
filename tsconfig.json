@@ -6,7 +6,6 @@
     "noUnusedLocals": true,
     "module": "commonjs",
     "moduleResolution": "node",
-    "experimentalDecorators": true,
     "outDir": "dist"
   }
 }
