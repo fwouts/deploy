@@ -1,4 +1,5 @@
 import * as CloudFormation from "aws-sdk/clients/cloudformation";
+import * as util from "util";
 
 const CLOUD_FORMATION_REFRESH_RATE_MILLIS = 2000;
 
@@ -55,20 +56,31 @@ export async function deleteCloudFormationStack(region: string, name: string) {
     await new Promise(resolve =>
       setTimeout(resolve, CLOUD_FORMATION_REFRESH_RATE_MILLIS)
     );
-    let description = await cloudFormation
-      .describeStacks({
-        StackName: name
-      })
-      .promise();
-    if (!description.Stacks || description.Stacks.length === 0) {
-      throw new Error(`CloudFormation stack ${name} could not be found.`);
+    try {
+      let description = await cloudFormation
+        .describeStacks({
+          StackName: name
+        })
+        .promise();
+      if (!description.Stacks || description.Stacks.length === 0) {
+        throw new Error(`CloudFormation stack ${name} could not be found.`);
+      }
+      stack = description.Stacks[0];
+      status = stack.StackStatus;
+    } catch (e) {
+      if (e.code === "ValidationError") {
+        // Expected.
+        status = "DELETE_COMPLETE";
+      } else {
+        throw e;
+      }
     }
-    stack = description.Stacks[0];
-    status = stack.StackStatus;
   } while (status === "DELETE_IN_PROGRESS");
   if (status !== "DELETE_COMPLETE") {
     throw new Error(
-      `CloudFormation stack could not be deleted: ${stack.StackStatusReason}`
+      `CloudFormation stack could not be deleted: ${
+        stack ? stack.StackStatusReason : "unknown reason"
+      }`
     );
   }
 }

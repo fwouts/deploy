@@ -80,7 +80,10 @@ export async function createCluster(
     let cloudFormationTemplate = {
       AWSTemplateFormatVersion: "2010-09-09",
       Resources: {
-        cluster,
+        cluster: {
+          ...cluster,
+          DependsOn: "autoScalingGroup"
+        },
         autoScalingLaunchConfiguration,
         autoScalingGroup
       }
@@ -108,12 +111,31 @@ export async function destroy(region: string, clusterName: string) {
     `Deleting CloudFormation stack ${names.cloudFormationStack}...`
   );
   try {
-    await stacks.deleteCloudFormationStack(region, names.cloudFormationStack);
+    try {
+      await stacks.deleteCloudFormationStack(region, names.cloudFormationStack);
+    } catch (e) {
+      if (
+        e
+          .toString()
+          .indexOf("The following resource(s) failed to delete: [cluster].") !==
+        -1
+      ) {
+        // Try again. This is a known bug: https://stackoverflow.com/questions/46280080/cannot-delete-amazon-ecs-cluster-using-cloudformation.
+        await stacks.deleteCloudFormationStack(
+          region,
+          names.cloudFormationStack
+        );
+      } else {
+        throw e;
+      }
+    }
   } catch (e) {
     console.logError(e);
     throw new console.AlreadyLoggedError(e);
   }
-  console.logInfo(`✔ Deleted CloudFormation stack ${clusterName}.`);
+  console.logInfo(
+    `✔ Deleted CloudFormation stack ${names.cloudFormationStack}.`
+  );
   console.logSuccess(`Cluster ${clusterName} destroyed successfully.`);
 }
 
