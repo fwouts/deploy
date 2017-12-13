@@ -3,10 +3,10 @@
   "version": "0.0.4",
   "author": "Francois Wouts <f@zenc.io>",
   "license": "MIT",
-  "main": "dist/main.js",
+  "main": "dist/bundle.js",
   "scripts": {
     "dev": "nodemon -e ts -w src/ --exec 'ts-node src/main.ts || exit 1'",
-    "build": "rimraf dist/ && tsc"
+    "build": "rimraf dist/ && webpack"
   },
   "dependencies": {
     "atob": "^2.0.3",
@@ -25,7 +25,9 @@
     "@types/node": "^8.0.58",
     "nodemon": "^1.12.5",
     "rimraf": "^2.6.2",
+    "ts-loader": "^3.2.0",
     "ts-node": "^4.0.1",
-    "typescript": "^2.6.2"
+    "typescript": "^2.6.2",
+    "webpack": "^3.10.0"
   }
 }
