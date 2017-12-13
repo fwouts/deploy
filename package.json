@@ -1,0 +1,27 @@
+{
+  "name": "deploy-cli",
+  "version": "0.0.4",
+  "author": "Francois Wouts <f@zenc.io>",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "dev": "nodemon -e ts -w src/ --exec 'ts-node src/main.ts || exit 1'"
+  },
+  "dependencies": {
+    "atob": "^2.0.3",
+    "aws-sdk": "^2.169.0",
+    "btoa": "^1.1.2",
+    "chalk": "^2.3.0",
+    "dockerode": "^2.5.3",
+    "lodash": "^4.17.4"
+  },
+  "devDependencies": {
+    "@types/chalk": "^2.2.0",
+    "@types/dockerode": "^2.5.1",
+    "@types/lodash": "^4.14.88",
+    "@types/node": "^8.0.58",
+    "nodemon": "^1.12.5",
+    "ts-node": "^4.0.1",
+    "typescript": "^2.6.2"
+  }
+}
