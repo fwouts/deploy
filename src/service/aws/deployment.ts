@@ -1,3 +1,4 @@
+import * as CloudFormation from "aws-sdk/clients/cloudformation";
 import * as clusters from "./resources/clusters";
 import * as console from "../console";
 import * as deployModel from "../deploymodel";
@@ -6,41 +7,25 @@ import * as loadBalancers from "./resources/loadbalancers";
 import * as repositories from "./resources/repositories";
 import * as securityGroups from "./resources/securitygroups";
 import * as services from "./resources/services";
-import * as tags from "./resources/tags";
 import * as targetGroups from "./resources/targetgroups";
 import * as taskDefinitions from "./resources/taskdefinitions";
 import * as vpcs from "./resources/vpcs";
+
+import { AWS } from "cloudformation-declarations";
 
 export interface DeployResult {
   deploymentId: string;
   repositoryName: string;
   repositoryImageTag: string;
-  loadBalancerSecurityGroupId: string;
-  loadBalancerArn: string;
-  taskDefinitionArn: string;
-  targetGroupArn: string;
-  loadBalancerListenerArn: string;
-  serviceArn: string;
-  dns: string;
 }
 
 export async function deploy(
   deploymentSpec: deployModel.DeploymentSpec,
   deploymentId: string
 ): Promise<DeployResult> {
-  let deploymentTags = [
-    tags.SHARED_TAG,
-    tags.clusterNameTag(deploymentSpec.cluster.name),
-    tags.deploymentIdTag(deploymentId)
-  ];
   let names = getResourceNames(deploymentId);
   let cluster: clusters.Cluster | undefined;
   let dockerImagePushed = false;
-  let loadBalancerSecurityGroupCreated = false;
-  let loadBalancerCreated = false;
-  let taskDefinitionCreated = false;
-  let targetGroupCreated = false;
-  let serviceCreated = false;
 
   try {
     console.logInfo(`Building Docker image ${names.localDockerImage}...`);
@@ -88,21 +73,6 @@ export async function deploy(
     let vpc = await vpcs.getDefaultVpcAndSubnets(deploymentSpec.cluster.region);
     console.logInfo(`✔ Using default VPC with ID ${vpc.id}.`);
 
-    // Create security groups (ELB + ECS) and configure their relationship.
-    console.logInfo(
-      `Creating security group ${names.loadBalancerSecurityGroup}...`
-    );
-    let loadBalancerSecurityGroup = await securityGroups.createLoadBalancerSecurityGroup(
-      deploymentSpec.cluster.region,
-      names.loadBalancerSecurityGroup,
-      vpc.id,
-      deploymentTags
-    );
-    console.logInfo(
-      `✔ Security group ${names.loadBalancerSecurityGroup} created.`
-    );
-    loadBalancerSecurityGroupCreated = true;
-
     console.logInfo(`Getting default security group for cluster...`);
     let defaultSecurityGroupId = await securityGroups.getDefaultSecurityGroupId(
       deploymentSpec.cluster.region,
@@ -115,183 +85,178 @@ export async function deploy(
     // TODO: Support HTTPS on 443.
     let loadBalancerPort = 80;
 
-    console.logInfo(`Configuring security group ingress rules...`);
-    await securityGroups.configureSecurityGroups(
-      deploymentSpec.cluster.region,
-      loadBalancerSecurityGroup.id,
-      defaultSecurityGroupId,
-      [loadBalancerPort]
-    );
-    console.logInfo(`✔ Security group ingress rules set up successfully.`);
-
-    // Create load balancer.
-    console.logInfo(`Creating load balancer ${names.loadBalancer}...`);
-    let loadBalancer = await loadBalancers.createLoadBalancer(
-      deploymentSpec.cluster.region,
-      names.loadBalancer,
-      vpc.subnetIds,
-      loadBalancerSecurityGroup.id,
-      deploymentTags
-    );
-    console.logInfo(
-      `✔ Load balancer ${
-        names.loadBalancer
-      } created successfully. It may take a few minutes to provision...`
-    );
-    loadBalancerCreated = true;
-
-    // Register task definition.
-    console.logInfo(`Creating task definition ${names.taskDefinition}...`);
-    let taskDefinition = await taskDefinitions.createTaskDefinition(
-      deploymentSpec.cluster.region,
-      names.taskDefinition,
-      names.container,
-      repository.uri + ":" + names.remoteDockerImageTag,
-      loadBalancer.dns,
-      dockerImageExposedPort,
-      deploymentSpec.container.memory,
-      deploymentSpec.container.cpuUnits,
-      deploymentSpec.environment
-    );
-    console.logInfo(
-      `✔ Task definition created in family ${taskDefinition.family}.`
-    );
-    taskDefinitionCreated = true;
-
-    // Create target group.
-    console.logInfo(`Creating target group ${names.targetGroup}...`);
-    let targetGroup = await targetGroups.createTargetGroup(
-      deploymentSpec.cluster.region,
-      names.targetGroup,
-      vpc.id,
-      loadBalancerPort,
-      deploymentTags
-    );
-    console.logInfo(`✔ Created target group ${names.targetGroup}.`);
-    targetGroupCreated = true;
-
-    // Add load balancer listener for target group.
-    console.logInfo(
-      `Creating listener for load balancer ${loadBalancer.name}...`
-    );
-    let loadBalancerListener = await loadBalancers.createListener(
-      deploymentSpec.cluster.region,
-      loadBalancer.arn,
-      loadBalancerPort,
-      targetGroup.arn
-    );
-    console.logInfo(`✔ Created load balancer listener.`);
-
-    // Create service in cluster.
-    console.logInfo(`Creating service ${names.service}...`);
-    let service = await services.createService(
-      deploymentSpec.cluster.region,
-      names.service,
-      names.container,
-      cluster.arn,
-      taskDefinition.arn,
-      targetGroup.arn,
-      deploymentSpec.desiredCount,
-      dockerImageExposedPort
-    );
-    console.logInfo(`✔ Created service ${names.service}.`);
-    serviceCreated = true;
+    let cloudFormation = new CloudFormation({
+      region: deploymentSpec.cluster.region
+    });
+    let loadBalancerSecurityGroup: AWS.EC2.SecurityGroup = {
+      Type: "AWS::EC2::SecurityGroup",
+      Properties: {
+        GroupName: names.loadBalancerSecurityGroup,
+        GroupDescription: "Security group for ELB.",
+        VpcId: vpc.id
+      }
+    };
+    let loadBalancerSecurityGroupIngressFromDefaultSecurityGroup: AWS.EC2.SecurityGroupIngress = {
+      Type: "AWS::EC2::SecurityGroupIngress",
+      Properties: {
+        GroupId: {
+          Ref: "loadBalancerSecurityGroup"
+        } as any,
+        IpProtocol: "TCP",
+        FromPort: "0",
+        ToPort: "65535",
+        SourceSecurityGroupId: defaultSecurityGroupId
+      }
+    };
+    let loadBalancerSecurityGroupIngressFromOutside: AWS.EC2.SecurityGroupIngress = {
+      Type: "AWS::EC2::SecurityGroupIngress",
+      Properties: {
+        GroupId: {
+          Ref: "loadBalancerSecurityGroup"
+        } as any,
+        IpProtocol: "TCP",
+        FromPort: loadBalancerPort.toString(10),
+        ToPort: loadBalancerPort.toString(10),
+        CidrIp: "0.0.0.0/0"
+      }
+    };
+    let defaultSecurityGroupIngressFromLoadBalancer: AWS.EC2.SecurityGroupIngress = {
+      Type: "AWS::EC2::SecurityGroupIngress",
+      Properties: {
+        GroupId: defaultSecurityGroupId,
+        IpProtocol: "TCP",
+        FromPort: "0",
+        ToPort: "65535",
+        SourceSecurityGroupId: {
+          Ref: "loadBalancerSecurityGroup"
+        } as any
+      }
+    };
+    let loadBalancer: AWS.ElasticLoadBalancingV2.LoadBalancer = {
+      Type: "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      Properties: {
+        Name: names.loadBalancer,
+        Type: "application",
+        Subnets: vpc.subnetIds,
+        SecurityGroups: [
+          {
+            Ref: "loadBalancerSecurityGroup"
+          } as any
+        ]
+      }
+    };
+    let environmentVariables: AWS.ECS.TaskDefinition.KeyValuePair[] = [];
+    for (let [key, value] of Object.entries(deploymentSpec.environment)) {
+      environmentVariables.push({
+        Name: key,
+        Value: value
+      });
+    }
+    let taskDefinition: AWS.ECS.TaskDefinition = {
+      Type: "AWS::ECS::TaskDefinition",
+      Properties: {
+        Family: names.taskDefinition,
+        ContainerDefinitions: [
+          {
+            Name: names.container,
+            Image: repository.uri + ":" + names.remoteDockerImageTag,
+            Memory: deploymentSpec.container.memory.toString(10),
+            Cpu: deploymentSpec.container.cpuUnits
+              ? deploymentSpec.container.cpuUnits.toString(10)
+              : "",
+            PortMappings: [
+              {
+                HostPort: "0",
+                ContainerPort: dockerImageExposedPort.toString(10)
+              }
+            ],
+            Environment: environmentVariables
+          }
+        ]
+      }
+    };
+    let targetGroup: AWS.ElasticLoadBalancingV2.TargetGroup = {
+      Type: "AWS::ElasticLoadBalancingV2::TargetGroup",
+      Properties: {
+        Name: names.targetGroup,
+        Protocol: "HTTP",
+        Port: loadBalancerPort.toString(10),
+        VpcId: vpc.id
+      }
+    };
+    let loadBalancerListener: AWS.ElasticLoadBalancingV2.Listener = {
+      Type: "AWS::ElasticLoadBalancingV2::Listener",
+      Properties: {
+        LoadBalancerArn: {
+          Ref: "loadBalancer"
+        } as any,
+        Protocol: "HTTP",
+        Port: loadBalancerPort.toString(10),
+        DefaultActions: [
+          {
+            Type: "forward",
+            TargetGroupArn: {
+              Ref: "targetGroup"
+            } as any
+          }
+        ]
+      }
+    };
+    let service: AWS.ECS.Service = {
+      Type: "AWS::ECS::Service",
+      Properties: {
+        Cluster: cluster.arn,
+        ServiceName: names.service,
+        TaskDefinition: {
+          Ref: "taskDefinition"
+        } as any,
+        DesiredCount: deploymentSpec.desiredCount.toString(10),
+        LoadBalancers: [
+          {
+            TargetGroupArn: {
+              Ref: "targetGroup"
+            } as any,
+            ContainerName: names.container,
+            ContainerPort: dockerImageExposedPort.toString(10)
+          }
+        ]
+      }
+    };
+    let cloudFormationTemplate = {
+      AWSTemplateFormatVersion: "2010-09-09",
+      Resources: {
+        loadBalancerSecurityGroup,
+        loadBalancerSecurityGroupIngressFromDefaultSecurityGroup,
+        loadBalancerSecurityGroupIngressFromOutside,
+        defaultSecurityGroupIngressFromLoadBalancer,
+        loadBalancer,
+        taskDefinition,
+        targetGroup,
+        loadBalancerListener,
+        service: {
+          ...service,
+          DependsOn: "loadBalancerListener"
+        }
+      }
+    };
+    await cloudFormation
+      .createStack({
+        StackName: deploymentId,
+        TemplateBody: JSON.stringify(cloudFormationTemplate, null, 2)
+      })
+      .promise();
 
     console.logSuccess(
-      `Deployed successfully at ${loadBalancer.dns} (live in a few minutes).`
+      `Created CloudFormation stack ${deploymentId} successfully (live in a few minutes).`
     );
 
     return {
       deploymentId,
       repositoryName: names.repository,
-      repositoryImageTag: names.remoteDockerImageTag,
-      loadBalancerSecurityGroupId: loadBalancerSecurityGroup.id,
-      loadBalancerArn: loadBalancer.arn,
-      taskDefinitionArn: taskDefinition.arn,
-      targetGroupArn: targetGroup.arn,
-      loadBalancerListenerArn: loadBalancerListener.arn,
-      serviceArn: service.arn,
-      dns: loadBalancer.dns
+      repositoryImageTag: names.remoteDockerImageTag
     };
   } catch (e) {
     console.logError(e);
-    if (cluster) {
-      if (serviceCreated) {
-        console.logInfo(`Rolling back service ${names.service}...`);
-        try {
-          await services.destroyService(
-            deploymentSpec.cluster.region,
-            cluster.arn,
-            names.service
-          );
-          console.logInfo(`✔ Destroyed service ${names.service}.`);
-        } catch {
-          console.logInfo(`Could not roll back ${names.service}.`);
-        }
-      }
-      if (targetGroupCreated) {
-        console.logInfo(`Rolling back target group ${names.targetGroup}...`);
-        try {
-          await targetGroups.deleteTargetGroup(
-            deploymentSpec.cluster.region,
-            names.targetGroup
-          );
-          console.logInfo(`✔ Deleted target group ${names.targetGroup}.`);
-        } catch {
-          console.logInfo(`Could not roll back ${names.targetGroup}.`);
-        }
-      }
-      if (taskDefinitionCreated) {
-        console.logInfo(
-          `Rolling back task definition ${names.taskDefinition}...`
-        );
-        try {
-          await taskDefinitions.deregisterTaskDefinition(
-            deploymentSpec.cluster.region,
-            names.taskDefinition
-          );
-          console.logInfo(
-            `✔ Deregistered task definition ${names.taskDefinition}.`
-          );
-        } catch {
-          console.logInfo(`Could not roll back ${names.taskDefinition}.`);
-        }
-      }
-      if (loadBalancerCreated) {
-        console.logInfo(`Rolling back load balancer ${names.loadBalancer}...`);
-        try {
-          await loadBalancers.destroyLoadBalancer(
-            deploymentSpec.cluster.region,
-            names.loadBalancer
-          );
-          console.logInfo(`✔ Destroyed load balancer ${names.loadBalancer}.`);
-        } catch {
-          console.logInfo(`Could not roll back ${names.loadBalancer}.`);
-        }
-      }
-      if (loadBalancerSecurityGroupCreated) {
-        console.logInfo(
-          `Rolling back load balancer security group ${
-            names.loadBalancerSecurityGroup
-          }...`
-        );
-        try {
-          await securityGroups.deleteLoadBalancerSecurityGroup(
-            deploymentSpec.cluster.region,
-            names.loadBalancerSecurityGroup
-          );
-          console.logInfo(
-            `✔ Deleted load balancer security group ${
-              names.loadBalancerSecurityGroup
-            }.`
-          );
-        } catch {
-          console.logInfo(
-            `Could not roll back ${names.loadBalancerSecurityGroup}.`
-          );
-        }
-      }
-    }
     if (dockerImagePushed) {
       console.logInfo(
         `Rolling back Docker image ${names.repository}:${
@@ -371,7 +336,7 @@ export async function destroy(
 export function getResourceNames(deploymentId: string) {
   return {
     loadBalancer: deploymentId + "-loadbalancer",
-    loadBalancerSecurityGroup: deploymentId + "-loadbalancersecuritygroup",
+    loadBalancerSecurityGroup: deploymentId + "-loadBalancerSecurityGroup",
     taskDefinition: deploymentId + "-taskdefinition",
     service: deploymentId + "-service",
     container: deploymentId + "-container",
