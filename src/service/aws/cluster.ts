@@ -1,8 +1,8 @@
-import * as CloudFormation from "aws-sdk/clients/cloudformation";
 import * as console from "../console";
 import * as deployModel from "../deploymodel";
 import * as images from "./resources/images";
 import * as securityGroups from "./resources/securitygroups";
+import * as stacks from "./resources/stacks";
 import * as vpcs from "./resources/vpcs";
 
 import { AWS } from "cloudformation-declarations";
@@ -42,54 +42,58 @@ export async function createCluster(
   let imageId = await images.getEcsImageId(clusterSpec.region);
   console.logInfo(`✔ Using AMI ${imageId}.`);
 
-  let cloudFormation = new CloudFormation({
-    region: clusterSpec.region
-  });
   let cluster: AWS.ECS.Cluster = {
     Type: "AWS::ECS::Cluster",
     Properties: {
       ClusterName: clusterSpec.name
     }
   };
-  // TODO: Fail with a helpful message if ecsInstanceRole is not available.
-  let autoScalingLaunchConfiguration: AWS.AutoScaling.LaunchConfiguration = {
-    Type: "AWS::AutoScaling::LaunchConfiguration",
-    Properties: {
-      InstanceType: clusterSpec.ec2InstanceType,
-      ImageId: imageId,
-      SecurityGroups: [defaultSecurityGroupId],
-      IamInstanceProfile: ECS_INSTANCE_ROLE_NAME,
-      UserData: btoa(
-        `#!/bin/bash
-echo ECS_CLUSTER=${clusterSpec.name} >> /etc/ecs/ecs.config`
-      )
-    }
-  };
-  let autoScalingGroup: AWS.AutoScaling.AutoScalingGroup = {
-    Type: "AWS::AutoScaling::AutoScalingGroup",
-    Properties: {
-      LaunchConfigurationName: {
-        Ref: "autoScalingLaunchConfiguration"
-      } as any,
-      MinSize: clusterSpec.ec2InstanceCount.toString(10),
-      MaxSize: clusterSpec.ec2InstanceCount.toString(10),
-      VPCZoneIdentifier: vpc.subnetIds
-    }
-  };
-  let cloudFormationTemplate = {
-    AWSTemplateFormatVersion: "2010-09-09",
-    Resources: {
-      cluster,
-      autoScalingLaunchConfiguration,
-      autoScalingGroup
-    }
-  };
-  await cloudFormation
-    .createStack({
-      StackName: names.cloudFormationStack,
-      TemplateBody: JSON.stringify(cloudFormationTemplate, null, 2)
-    })
-    .promise();
+  console.logInfo(
+    `Creating CloudFormation stack ${names.cloudFormationStack}...`
+  );
+  try {
+    // TODO: Fail with a helpful message if ecsInstanceRole is not available.
+    let autoScalingLaunchConfiguration: AWS.AutoScaling.LaunchConfiguration = {
+      Type: "AWS::AutoScaling::LaunchConfiguration",
+      Properties: {
+        InstanceType: clusterSpec.ec2InstanceType,
+        ImageId: imageId,
+        SecurityGroups: [defaultSecurityGroupId],
+        IamInstanceProfile: ECS_INSTANCE_ROLE_NAME,
+        UserData: btoa(
+          `#!/bin/bash
+  echo ECS_CLUSTER=${clusterSpec.name} >> /etc/ecs/ecs.config`
+        )
+      }
+    };
+    let autoScalingGroup: AWS.AutoScaling.AutoScalingGroup = {
+      Type: "AWS::AutoScaling::AutoScalingGroup",
+      Properties: {
+        LaunchConfigurationName: {
+          Ref: "autoScalingLaunchConfiguration"
+        } as any,
+        MinSize: clusterSpec.ec2InstanceCount.toString(10),
+        MaxSize: clusterSpec.ec2InstanceCount.toString(10),
+        VPCZoneIdentifier: vpc.subnetIds
+      }
+    };
+    let cloudFormationTemplate = {
+      AWSTemplateFormatVersion: "2010-09-09",
+      Resources: {
+        cluster,
+        autoScalingLaunchConfiguration,
+        autoScalingGroup
+      }
+    };
+    await stacks.createCloudFormationStack(
+      clusterSpec.region,
+      names.cloudFormationStack,
+      cloudFormationTemplate
+    );
+  } catch (e) {
+    console.logError(e);
+    throw new console.AlreadyLoggedError(e);
+  }
   console.logSuccess(`Cluster ${clusterSpec.name} created successfully.`);
   return {
     clusterName: clusterSpec.name,
@@ -100,17 +104,15 @@ echo ECS_CLUSTER=${clusterSpec.name} >> /etc/ecs/ecs.config`
 
 export async function destroy(region: string, clusterName: string) {
   let names = getResourceNames(clusterName);
-  let cloudFormation = new CloudFormation({
-    region: region
-  });
   console.logInfo(
     `Deleting CloudFormation stack ${names.cloudFormationStack}...`
   );
-  await cloudFormation
-    .deleteStack({
-      StackName: names.cloudFormationStack
-    })
-    .promise();
+  try {
+    await stacks.deleteCloudFormationStack(region, names.cloudFormationStack);
+  } catch (e) {
+    console.logError(e);
+    throw new console.AlreadyLoggedError(e);
+  }
   console.logInfo(`✔ Deleted CloudFormation stack ${clusterName}.`);
   console.logSuccess(`Cluster ${clusterName} destroyed successfully.`);
 }

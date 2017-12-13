@@ -1,10 +1,10 @@
-import * as CloudFormation from "aws-sdk/clients/cloudformation";
 import * as clusters from "./resources/clusters";
 import * as console from "../console";
 import * as deployModel from "../deploymodel";
 import * as docker from "../docker";
 import * as repositories from "./resources/repositories";
 import * as securityGroups from "./resources/securitygroups";
+import * as stacks from "./resources/stacks";
 import * as vpcs from "./resources/vpcs";
 
 import { AWS } from "cloudformation-declarations";
@@ -81,169 +81,172 @@ export async function deploy(
     // TODO: Support HTTPS on 443.
     let loadBalancerPort = 80;
 
-    let cloudFormation = new CloudFormation({
-      region: deploymentSpec.cluster.region
-    });
-    let loadBalancerSecurityGroup: AWS.EC2.SecurityGroup = {
-      Type: "AWS::EC2::SecurityGroup",
-      Properties: {
-        GroupName: names.loadBalancerSecurityGroup,
-        GroupDescription: "Security group for ELB.",
-        VpcId: vpc.id
-      }
-    };
-    let loadBalancerSecurityGroupIngressFromDefaultSecurityGroup: AWS.EC2.SecurityGroupIngress = {
-      Type: "AWS::EC2::SecurityGroupIngress",
-      Properties: {
-        GroupId: {
-          Ref: "loadBalancerSecurityGroup"
-        } as any,
-        IpProtocol: "TCP",
-        FromPort: "0",
-        ToPort: "65535",
-        SourceSecurityGroupId: defaultSecurityGroupId
-      }
-    };
-    let loadBalancerSecurityGroupIngressFromOutside: AWS.EC2.SecurityGroupIngress = {
-      Type: "AWS::EC2::SecurityGroupIngress",
-      Properties: {
-        GroupId: {
-          Ref: "loadBalancerSecurityGroup"
-        } as any,
-        IpProtocol: "TCP",
-        FromPort: loadBalancerPort.toString(10),
-        ToPort: loadBalancerPort.toString(10),
-        CidrIp: "0.0.0.0/0"
-      }
-    };
-    let defaultSecurityGroupIngressFromLoadBalancer: AWS.EC2.SecurityGroupIngress = {
-      Type: "AWS::EC2::SecurityGroupIngress",
-      Properties: {
-        GroupId: defaultSecurityGroupId,
-        IpProtocol: "TCP",
-        FromPort: "0",
-        ToPort: "65535",
-        SourceSecurityGroupId: {
-          Ref: "loadBalancerSecurityGroup"
-        } as any
-      }
-    };
-    let loadBalancer: AWS.ElasticLoadBalancingV2.LoadBalancer = {
-      Type: "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      Properties: {
-        Name: names.loadBalancer,
-        Type: "application",
-        Subnets: vpc.subnetIds,
-        SecurityGroups: [
-          {
+    console.logInfo(
+      `Creating CloudFormation stack ${names.cloudFormationStack}...`
+    );
+    try {
+      let loadBalancerSecurityGroup: AWS.EC2.SecurityGroup = {
+        Type: "AWS::EC2::SecurityGroup",
+        Properties: {
+          GroupName: names.loadBalancerSecurityGroup,
+          GroupDescription: "Security group for ELB.",
+          VpcId: vpc.id
+        }
+      };
+      let loadBalancerSecurityGroupIngressFromDefaultSecurityGroup: AWS.EC2.SecurityGroupIngress = {
+        Type: "AWS::EC2::SecurityGroupIngress",
+        Properties: {
+          GroupId: {
+            Ref: "loadBalancerSecurityGroup"
+          } as any,
+          IpProtocol: "TCP",
+          FromPort: "0",
+          ToPort: "65535",
+          SourceSecurityGroupId: defaultSecurityGroupId
+        }
+      };
+      let loadBalancerSecurityGroupIngressFromOutside: AWS.EC2.SecurityGroupIngress = {
+        Type: "AWS::EC2::SecurityGroupIngress",
+        Properties: {
+          GroupId: {
+            Ref: "loadBalancerSecurityGroup"
+          } as any,
+          IpProtocol: "TCP",
+          FromPort: loadBalancerPort.toString(10),
+          ToPort: loadBalancerPort.toString(10),
+          CidrIp: "0.0.0.0/0"
+        }
+      };
+      let defaultSecurityGroupIngressFromLoadBalancer: AWS.EC2.SecurityGroupIngress = {
+        Type: "AWS::EC2::SecurityGroupIngress",
+        Properties: {
+          GroupId: defaultSecurityGroupId,
+          IpProtocol: "TCP",
+          FromPort: "0",
+          ToPort: "65535",
+          SourceSecurityGroupId: {
             Ref: "loadBalancerSecurityGroup"
           } as any
-        ]
-      }
-    };
-    let environmentVariables: AWS.ECS.TaskDefinition.KeyValuePair[] = [];
-    for (let [key, value] of Object.entries(deploymentSpec.environment)) {
-      environmentVariables.push({
-        Name: key,
-        Value: value
-      });
-    }
-    let taskDefinition: AWS.ECS.TaskDefinition = {
-      Type: "AWS::ECS::TaskDefinition",
-      Properties: {
-        Family: names.taskDefinition,
-        ContainerDefinitions: [
-          {
-            Name: names.container,
-            Image: repository.uri + ":" + names.remoteDockerImageTag,
-            Memory: deploymentSpec.container.memory.toString(10),
-            Cpu: deploymentSpec.container.cpuUnits
-              ? deploymentSpec.container.cpuUnits.toString(10)
-              : "",
-            PortMappings: [
-              {
-                HostPort: "0",
-                ContainerPort: dockerImageExposedPort.toString(10)
-              }
-            ],
-            Environment: environmentVariables
-          }
-        ]
-      }
-    };
-    let targetGroup: AWS.ElasticLoadBalancingV2.TargetGroup = {
-      Type: "AWS::ElasticLoadBalancingV2::TargetGroup",
-      Properties: {
-        Name: names.targetGroup,
-        Protocol: "HTTP",
-        Port: loadBalancerPort.toString(10),
-        VpcId: vpc.id
-      }
-    };
-    let loadBalancerListener: AWS.ElasticLoadBalancingV2.Listener = {
-      Type: "AWS::ElasticLoadBalancingV2::Listener",
-      Properties: {
-        LoadBalancerArn: {
-          Ref: "loadBalancer"
-        } as any,
-        Protocol: "HTTP",
-        Port: loadBalancerPort.toString(10),
-        DefaultActions: [
-          {
-            Type: "forward",
-            TargetGroupArn: {
-              Ref: "targetGroup"
-            } as any
-          }
-        ]
-      }
-    };
-    let service: AWS.ECS.Service = {
-      Type: "AWS::ECS::Service",
-      Properties: {
-        Cluster: cluster.arn,
-        ServiceName: names.service,
-        TaskDefinition: {
-          Ref: "taskDefinition"
-        } as any,
-        DesiredCount: deploymentSpec.desiredCount.toString(10),
-        LoadBalancers: [
-          {
-            TargetGroupArn: {
-              Ref: "targetGroup"
-            } as any,
-            ContainerName: names.container,
-            ContainerPort: dockerImageExposedPort.toString(10)
-          }
-        ]
-      }
-    };
-    let cloudFormationTemplate = {
-      AWSTemplateFormatVersion: "2010-09-09",
-      Resources: {
-        loadBalancerSecurityGroup,
-        loadBalancerSecurityGroupIngressFromDefaultSecurityGroup,
-        loadBalancerSecurityGroupIngressFromOutside,
-        defaultSecurityGroupIngressFromLoadBalancer,
-        loadBalancer,
-        taskDefinition,
-        targetGroup,
-        loadBalancerListener,
-        service: {
-          ...service,
-          DependsOn: "loadBalancerListener"
         }
+      };
+      let loadBalancer: AWS.ElasticLoadBalancingV2.LoadBalancer = {
+        Type: "AWS::ElasticLoadBalancingV2::LoadBalancer",
+        Properties: {
+          Name: names.loadBalancer,
+          Type: "application",
+          Subnets: vpc.subnetIds,
+          SecurityGroups: [
+            {
+              Ref: "loadBalancerSecurityGroup"
+            } as any
+          ]
+        }
+      };
+      let environmentVariables: AWS.ECS.TaskDefinition.KeyValuePair[] = [];
+      for (let [key, value] of Object.entries(deploymentSpec.environment)) {
+        environmentVariables.push({
+          Name: key,
+          Value: value
+        });
       }
-    };
-    await cloudFormation
-      .createStack({
-        StackName: deploymentId,
-        TemplateBody: JSON.stringify(cloudFormationTemplate, null, 2)
-      })
-      .promise();
-
+      let taskDefinition: AWS.ECS.TaskDefinition = {
+        Type: "AWS::ECS::TaskDefinition",
+        Properties: {
+          Family: names.taskDefinition,
+          ContainerDefinitions: [
+            {
+              Name: names.container,
+              Image: repository.uri + ":" + names.remoteDockerImageTag,
+              Memory: deploymentSpec.container.memory.toString(10),
+              Cpu: deploymentSpec.container.cpuUnits
+                ? deploymentSpec.container.cpuUnits.toString(10)
+                : "",
+              PortMappings: [
+                {
+                  HostPort: "0",
+                  ContainerPort: dockerImageExposedPort.toString(10)
+                }
+              ],
+              Environment: environmentVariables
+            }
+          ]
+        }
+      };
+      let targetGroup: AWS.ElasticLoadBalancingV2.TargetGroup = {
+        Type: "AWS::ElasticLoadBalancingV2::TargetGroup",
+        Properties: {
+          Name: names.targetGroup,
+          Protocol: "HTTP",
+          Port: loadBalancerPort.toString(10),
+          VpcId: vpc.id
+        }
+      };
+      let loadBalancerListener: AWS.ElasticLoadBalancingV2.Listener = {
+        Type: "AWS::ElasticLoadBalancingV2::Listener",
+        Properties: {
+          LoadBalancerArn: {
+            Ref: "loadBalancer"
+          } as any,
+          Protocol: "HTTP",
+          Port: loadBalancerPort.toString(10),
+          DefaultActions: [
+            {
+              Type: "forward",
+              TargetGroupArn: {
+                Ref: "targetGroup"
+              } as any
+            }
+          ]
+        }
+      };
+      let service: AWS.ECS.Service = {
+        Type: "AWS::ECS::Service",
+        Properties: {
+          Cluster: cluster.arn,
+          ServiceName: names.service,
+          TaskDefinition: {
+            Ref: "taskDefinition"
+          } as any,
+          DesiredCount: deploymentSpec.desiredCount.toString(10),
+          LoadBalancers: [
+            {
+              TargetGroupArn: {
+                Ref: "targetGroup"
+              } as any,
+              ContainerName: names.container,
+              ContainerPort: dockerImageExposedPort.toString(10)
+            }
+          ]
+        }
+      };
+      let cloudFormationTemplate = {
+        AWSTemplateFormatVersion: "2010-09-09",
+        Resources: {
+          loadBalancerSecurityGroup,
+          loadBalancerSecurityGroupIngressFromDefaultSecurityGroup,
+          loadBalancerSecurityGroupIngressFromOutside,
+          defaultSecurityGroupIngressFromLoadBalancer,
+          loadBalancer,
+          taskDefinition,
+          targetGroup,
+          loadBalancerListener,
+          service: {
+            ...service,
+            DependsOn: "loadBalancerListener"
+          }
+        }
+      };
+      await stacks.createCloudFormationStack(
+        deploymentSpec.cluster.region,
+        names.cloudFormationStack,
+        cloudFormationTemplate
+      );
+    } catch (e) {
+      console.logError(e);
+      throw new console.AlreadyLoggedError(e);
+    }
     console.logSuccess(
-      `Created CloudFormation stack ${deploymentId} successfully (live in a few minutes).`
+      `Created CloudFormation stack ${names.cloudFormationStack}.`
     );
 
     return {
@@ -288,16 +291,18 @@ export async function destroy(
   deploymentId: string
 ) {
   let names = getResourceNames(deploymentId);
-  let cloudFormation = new CloudFormation({
-    region: region
-  });
-  console.logInfo(`Deleting CloudFormation stack ${deploymentId}...`);
-  await cloudFormation
-    .deleteStack({
-      StackName: deploymentId
-    })
-    .promise();
-  console.logInfo(`✔ Deleted CloudFormation stack ${deploymentId}.`);
+  console.logInfo(
+    `Deleting CloudFormation stack ${names.cloudFormationStack}...`
+  );
+  try {
+    await stacks.deleteCloudFormationStack(region, names.cloudFormationStack);
+  } catch (e) {
+    console.logError(e);
+    throw new console.AlreadyLoggedError(e);
+  }
+  console.logInfo(
+    `✔ Deleted CloudFormation stack ${names.cloudFormationStack}.`
+  );
   console.logInfo(
     `Deleting Docker image ${names.repository}:${names.remoteDockerImageTag}...`
   );
@@ -314,6 +319,7 @@ export async function destroy(
 
 export function getResourceNames(deploymentId: string) {
   return {
+    cloudFormationStack: "deployment-" + deploymentId,
     loadBalancer: deploymentId + "-loadbalancer",
     loadBalancerSecurityGroup: deploymentId + "-loadBalancerSecurityGroup",
     taskDefinition: deploymentId + "-taskdefinition",
