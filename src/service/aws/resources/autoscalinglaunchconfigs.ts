@@ -1,5 +1,5 @@
 import * as AutoScaling from "aws-sdk/clients/autoscaling";
-import * as EC2 from "aws-sdk/clients/ec2";
+import * as images from "./images";
 
 const btoa = require("btoa");
 
@@ -15,43 +15,14 @@ export async function createAutoScalingLaunchConfiguration(
   let autoscaling = new AutoScaling({
     region: region
   });
-  let ec2 = new EC2({
-    region: region
-  });
-  let imagesDescription = await ec2
-    .describeImages({
-      Filters: [
-        {
-          Name: "name",
-          Values: ["amzn-ami*amazon-ecs-optimized"]
-        }
-      ]
-    })
-    .promise();
-  let mostRecentEcsOptimizedImage: [Date, string] | null = null;
-  for (let image of imagesDescription.Images || []) {
-    if (!image.CreationDate || !image.ImageId) {
-      continue;
-    }
-    let creationDate = new Date(image.CreationDate);
-    if (
-      !mostRecentEcsOptimizedImage ||
-      mostRecentEcsOptimizedImage[0].getTime() < creationDate.getTime()
-    ) {
-      mostRecentEcsOptimizedImage = [creationDate, image.ImageId];
-    }
-  }
-  if (!mostRecentEcsOptimizedImage) {
-    throw new Error("Could not find an ECS-optimised image.");
-  }
-  let instanceImageId = mostRecentEcsOptimizedImage[1];
+
   // http://docs.aws.amazon.com/AmazonECS/latest/developerguide/instance_IAM_role.html
   try {
     await autoscaling
       .createLaunchConfiguration({
         LaunchConfigurationName: name,
         InstanceType: instanceType,
-        ImageId: instanceImageId,
+        ImageId: await images.getEcsImageId(region),
         SecurityGroups: [securityGroupId],
         IamInstanceProfile: ECS_INSTANCE_ROLE_NAME,
         UserData: btoa(
