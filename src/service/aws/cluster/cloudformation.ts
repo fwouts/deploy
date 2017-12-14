@@ -1,12 +1,13 @@
-import * as console from "../console";
-import * as deployModel from "../deploymodel";
-import * as images from "./resources/images";
-import * as securityGroups from "./resources/securitygroups";
-import * as stacks from "./resources/stacks";
-import * as tags from "./resources/tags";
-import * as vpcs from "./resources/vpcs";
+import * as console from "../../console";
+import * as deployModel from "../../deploymodel";
+import * as images from "../resources/images";
+import * as securityGroups from "../resources/securitygroups";
+import * as stacks from "../resources/stacks";
+import * as tags from "../resources/tags";
+import * as vpcs from "../resources/vpcs";
 
 import { AWS } from "cloudformation-declarations";
+import { getResourceNames } from "./names";
 
 const btoa = require("btoa");
 
@@ -146,13 +147,4 @@ export async function destroy(region: string, clusterName: string) {
     `✔ Deleted CloudFormation stack ${names.cloudFormationStack}.`
   );
   console.logSuccess(`Cluster ${clusterName} destroyed successfully.`);
-}
-
-export function getResourceNames(clusterName: string) {
-  return {
-    cloudFormationStack: "cluster-" + clusterName,
-    launchConfiguration: clusterName + "-launchconfig",
-    autoScalingGroup: clusterName + "-autoscalinggroup",
-    instance: clusterName + "-instance"
-  };
 }

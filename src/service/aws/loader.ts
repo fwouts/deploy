@@ -2,7 +2,7 @@ import * as AutoScaling from "aws-sdk/clients/autoscaling";
 import * as ECS from "aws-sdk/clients/ecs";
 import * as ELBv2 from "aws-sdk/clients/elbv2";
 import * as _ from "lodash";
-import * as clusterUtil from "./cluster";
+import * as clusterNames from "./cluster/names";
 import * as regions from "./resources/regions";
 import * as tags from "./resources/tags";
 
@@ -70,7 +70,7 @@ async function loadCluster(
   ) {
     throw new Error("Cluster is missing key properties");
   }
-  let names = clusterUtil.getResourceNames(cluster.clusterName);
+  let names = clusterNames.getResourceNames(cluster.clusterName);
   let autoscaling = new AutoScaling({
     region: region
   });

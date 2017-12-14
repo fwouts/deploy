@@ -1,14 +1,15 @@
-import * as clusters from "./resources/clusters";
-import * as console from "../console";
-import * as deployModel from "../deploymodel";
-import * as docker from "../docker";
-import * as repositories from "./resources/repositories";
-import * as securityGroups from "./resources/securitygroups";
-import * as stacks from "./resources/stacks";
-import * as tags from "./resources/tags";
-import * as vpcs from "./resources/vpcs";
+import * as clusters from "../resources/clusters";
+import * as console from "../../console";
+import * as deployModel from "../../deploymodel";
+import * as docker from "../../docker";
+import * as repositories from "../resources/repositories";
+import * as securityGroups from "../resources/securitygroups";
+import * as stacks from "../resources/stacks";
+import * as tags from "../resources/tags";
+import * as vpcs from "../resources/vpcs";
 
 import { AWS } from "cloudformation-declarations";
+import { getResourceNames } from "./names";
 
 export interface DeployResult {
   deploymentId: string;
@@ -324,19 +325,4 @@ export async function destroy(
     `✔ Deleted Docker image ${names.repository}:${names.remoteDockerImageTag}.`
   );
   console.logSuccess(`Destroyed deployment ${deploymentId} successfully.`);
-}
-
-export function getResourceNames(deploymentId: string) {
-  return {
-    cloudFormationStack: "deployment-" + deploymentId,
-    loadBalancer: deploymentId + "-loadbalancer",
-    loadBalancerSecurityGroup: deploymentId + "-loadBalancerSecurityGroup",
-    taskDefinition: deploymentId + "-taskdefinition",
-    service: deploymentId + "-service",
-    container: deploymentId + "-container",
-    targetGroup: deploymentId + "-targetgroup",
-    localDockerImage: deploymentId + "-image:latest",
-    repository: "zenc-deploy-images",
-    remoteDockerImageTag: deploymentId
-  };
 }
