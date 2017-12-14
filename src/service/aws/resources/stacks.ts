@@ -1,5 +1,4 @@
 import * as CloudFormation from "aws-sdk/clients/cloudformation";
-import * as util from "util";
 
 const CLOUD_FORMATION_REFRESH_RATE_MILLIS = 2000;
 
