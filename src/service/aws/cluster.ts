@@ -3,6 +3,7 @@ import * as deployModel from "../deploymodel";
 import * as images from "./resources/images";
 import * as securityGroups from "./resources/securitygroups";
 import * as stacks from "./resources/stacks";
+import * as tags from "./resources/tags";
 import * as vpcs from "./resources/vpcs";
 
 import { AWS } from "cloudformation-declarations";
@@ -21,6 +22,7 @@ export async function createCluster(
   clusterSpec: deployModel.ClusterSpec
 ): Promise<CreateClusterResult> {
   let names = getResourceNames(clusterSpec.name);
+  let clusterTags = [tags.SHARED_TAG, tags.clusterNameTag(clusterSpec.name)];
 
   // Get the default VPC. Create it if necessary.
   console.logInfo(`Looking up default VPC and subnets...`);
@@ -74,7 +76,14 @@ export async function createCluster(
         } as any,
         MinSize: clusterSpec.ec2InstanceCount.toString(10),
         MaxSize: clusterSpec.ec2InstanceCount.toString(10),
-        VPCZoneIdentifier: vpc.subnetIds
+        VPCZoneIdentifier: vpc.subnetIds,
+        Tags: clusterTags.map(tag => {
+          return {
+            Key: tag.Key,
+            Value: tag.Value,
+            PropagateAtLaunch: true
+          };
+        }) as any
       }
     };
     let cloudFormationTemplate = {

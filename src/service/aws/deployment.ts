@@ -5,6 +5,7 @@ import * as docker from "../docker";
 import * as repositories from "./resources/repositories";
 import * as securityGroups from "./resources/securitygroups";
 import * as stacks from "./resources/stacks";
+import * as tags from "./resources/tags";
 import * as vpcs from "./resources/vpcs";
 
 import { AWS } from "cloudformation-declarations";
@@ -20,6 +21,11 @@ export async function deploy(
   deploymentId: string
 ): Promise<DeployResult> {
   let names = getResourceNames(deploymentId);
+  let deploymentTags = [
+    tags.SHARED_TAG,
+    tags.clusterNameTag(deploymentSpec.cluster.name),
+    tags.deploymentIdTag(deploymentId)
+  ];
   let cluster: clusters.Cluster | undefined;
   let dockerImagePushed = false;
 
@@ -90,7 +96,8 @@ export async function deploy(
         Properties: {
           GroupName: names.loadBalancerSecurityGroup,
           GroupDescription: "Security group for ELB.",
-          VpcId: vpc.id
+          VpcId: vpc.id,
+          Tags: deploymentTags
         }
       };
       let loadBalancerSecurityGroupIngressFromDefaultSecurityGroup: AWS.EC2.SecurityGroupIngress = {
@@ -139,7 +146,8 @@ export async function deploy(
             {
               Ref: "loadBalancerSecurityGroup"
             } as any
-          ]
+          ],
+          Tags: deploymentTags
         }
       };
       let environmentVariables: AWS.ECS.TaskDefinition.KeyValuePair[] = [];
@@ -178,7 +186,8 @@ export async function deploy(
           Name: names.targetGroup,
           Protocol: "HTTP",
           Port: loadBalancerPort.toString(10),
-          VpcId: vpc.id
+          VpcId: vpc.id,
+          Tags: deploymentTags
         }
       };
       let loadBalancerListener: AWS.ElasticLoadBalancingV2.Listener = {
