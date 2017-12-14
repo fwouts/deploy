@@ -31,17 +31,17 @@ program
   .command("create-cluster <name>")
   .option(
     "-r, --region <region>",
-    'The region in which to set up the cluster. Example: "us-east-1".',
+    "Optional. The region in which to set up the cluster. Default: us-east-1.",
     "us-east-1"
   )
   .option(
     "-t, --instance_type <instance-type>",
-    'The type of instance to start. Example: "t2.micro".',
+    "Optional. The type of instance to start. Default: t2.micro.",
     "t2.micro"
   )
   .option(
-    "-c, --instance_count <instance-count>",
-    "The number of instances to start. Example: 1.",
+    "-n, --instance_count <instance-count>",
+    "Optional. The number of instances to start. Default: 1.",
     parseInt,
     1
   )
@@ -70,7 +70,7 @@ program
   .command("destroy-cluster <name>")
   .option(
     "-r, --region <region>",
-    'The region in which the cluster was set up. Example: "us-east-1".',
+    'Required. The region in which the cluster was set up. Example: "us-east-1".',
     "us-east-1"
   )
   .action(
