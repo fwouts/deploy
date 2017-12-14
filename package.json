@@ -1,8 +1,15 @@
 {
   "name": "@zenclabs/deploy",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "author": "Francois Wouts <f@zenc.io>",
   "license": "MIT",
+  "description": "Deploy is a command-line tool that aims to make Docker deployments as simple as possible.",
+  "keywords": [
+    "AWS",
+    "Docker"
+  ],
+  "homepage": "https://github.com/zenclabs/deploy-cli",
+  "bugs": "https://github.com/zenclabs/deploy-cli/issues",
   "bin": {
     "deploy": "./dist/main.js"
   },
