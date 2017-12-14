@@ -3,10 +3,13 @@
   "version": "0.0.4",
   "author": "Francois Wouts <f@zenc.io>",
   "license": "MIT",
-  "main": "dist/bundle.js",
+  "bin": {
+    "deploy": "./dist/main.js"
+  },
   "scripts": {
-    "dev": "nodemon -e ts -w src/ --exec 'ts-node src/main.ts || exit 1'",
-    "build": "rimraf dist/ && webpack"
+    "dev": "nodemon -e ts -w src/ --exec ts-node src/main.ts",
+    "build":
+      "rimraf dist/ && webpack && echo \"#!/usr/bin/env node\\n\" | cat - dist/main.js > dist/main-with-prefix.js && mv dist/main-with-prefix.js dist/main.js && chmod +x dist/main.js"
   },
   "dependencies": {
     "atob": "^2.0.3",
@@ -15,6 +18,7 @@
     "btoa": "^1.1.2",
     "chalk": "^2.3.0",
     "cloudformation-declarations": "0.0.9",
+    "commander": "^2.12.2",
     "dockerode": "^2.5.3",
     "lodash": "^4.17.4",
     "portfinder": "^1.0.13",
