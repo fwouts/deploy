@@ -14,9 +14,14 @@ program.version(VERSION);
 
 function asyncAction(f: (...args: any[]) => Promise<any>) {
   return (...args: any[]) => {
-    f(...args).catch(error => {
-      console.logError(error);
-    });
+    f(...args)
+      .catch(error => {
+        console.logError(error);
+        process.exit(1);
+      })
+      .then(() => {
+        process.exit(0);
+      });
   };
 }
 
@@ -232,6 +237,7 @@ program
 
 program.command("*").action(cmd => {
   console.logError(`Unknown command: ${cmd}.`);
+  process.exit(1);
 });
 
 program.parse(process.argv);

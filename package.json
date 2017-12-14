@@ -1,5 +1,5 @@
 {
-  "name": "deploy-cli",
+  "name": "@zenc/deploy",
   "version": "0.0.4",
   "author": "Francois Wouts <f@zenc.io>",
   "license": "MIT",
@@ -8,8 +8,7 @@
   },
   "scripts": {
     "dev": "nodemon -e ts -w src/ --exec ts-node src/main.ts",
-    "build":
-      "rimraf dist/ && webpack && echo \"#!/usr/bin/env node\\n\" | cat - dist/main.js > dist/main-with-prefix.js && mv dist/main-with-prefix.js dist/main.js && chmod +x dist/main.js"
+    "build": "rimraf dist/ && webpack && echo \"#!/usr/bin/env node\\n\" | cat - dist/main.js > dist/main-with-prefix.js && mv dist/main-with-prefix.js dist/main.js && chmod +x dist/main.js"
   },
   "dependencies": {
     "atob": "^2.0.3",
