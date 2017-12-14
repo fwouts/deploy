@@ -325,7 +325,7 @@ export async function deploy(
 
 export async function destroy(
   region: string,
-  clusterName: string,
+  clusterName: string | null,
   deploymentId: string
 ) {
   let names = getResourceNames(deploymentId);
@@ -333,9 +333,11 @@ export async function destroy(
   console.logInfo(`Deregistering task definition ${names.taskDefinition}...`);
   await taskDefinitions.deregisterTaskDefinition(region, names.taskDefinition);
   console.logInfo(`✔ Deregistered task definition ${names.taskDefinition}.`);
-  console.logInfo(`Destroying service ${names.service}...`);
-  await services.destroyService(region, clusterName, names.service);
-  console.logInfo(`✔ Destroyed service ${names.service}.`);
+  if (clusterName) {
+    console.logInfo(`Destroying service ${names.service}...`);
+    await services.destroyService(region, clusterName, names.service);
+    console.logInfo(`✔ Destroyed service ${names.service}.`);
+  }
   console.logInfo(
     `Deleting Docker image ${names.repository}:${names.remoteDockerImageTag}...`
   );
