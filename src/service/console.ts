@@ -1,3 +1,5 @@
+import * as util from "util";
+
 import chalk from "chalk";
 
 export function logInfo(message: string) {
@@ -18,7 +20,7 @@ export function logError(error: any) {
   } else if (typeof error === "string") {
     message = error;
   } else {
-    message = JSON.stringify(error);
+    message = util.inspect(error);
   }
   console.log(chalk.red(message));
 }
