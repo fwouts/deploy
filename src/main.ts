@@ -76,8 +76,7 @@ program
   .command("destroy-cluster <name>")
   .option(
     "-r, --region <region>",
-    'Required. The region in which the cluster was set up. Example: "us-east-1".',
-    "us-east-1"
+    'Required. The region in which the cluster was set up. Example: "us-east-1".'
   )
   .action(
     asyncAction(async (name: string, options: { region: string }) => {
