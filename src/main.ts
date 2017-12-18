@@ -3,8 +3,7 @@ import "./commands/create-cluster";
 import "./commands/create-deployment";
 import "./commands/destroy-cluster";
 import "./commands/destroy-deployment";
-import "./commands/list-clusters";
-import "./commands/list-deployments";
+import "./commands/status";
 
 import * as console from "./service/console";
 import * as program from "commander";
