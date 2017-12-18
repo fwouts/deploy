@@ -5,7 +5,9 @@ import * as awsCluster from "./service/aws/cluster/adhoc";
 import * as awsDeployment from "./service/aws/deployment/adhoc";
 import * as awsLoader from "./service/aws/loader";
 import * as console from "./service/console";
+import * as inquirer from "inquirer";
 import * as program from "commander";
+import * as regions from "./service/aws/resources/regions";
 
 // TODO: Make sure this stays in sync with package.json.
 const VERSION = "0.0.4";
@@ -37,8 +39,7 @@ program
   .command("create-cluster <name>")
   .option(
     "-r, --region <region>",
-    "Optional. The region in which to set up the cluster. Default: us-east-1.",
-    "us-east-1"
+    "Optional. The region in which to set up the cluster. Prompted if not specified."
   )
   .option(
     "-t, --instance_type <instance-type>",
@@ -56,15 +57,16 @@ program
       async (
         name: string,
         options: {
-          region: string;
+          region?: string;
           instance_type: string;
           instance_count: number;
         }
       ) => {
+        let optionsWithRegion = await ensureRegionProvided(options);
         await awsAuth.authenticate();
         await awsCluster.createCluster({
           name: name,
-          region: options.region,
+          region: optionsWithRegion.region,
           ec2InstanceType: options.instance_type,
           ec2InstanceCount: options.instance_count
         });
@@ -76,12 +78,41 @@ program
   .command("destroy-cluster <name>")
   .option(
     "-r, --region <region>",
-    'Required. The region in which the cluster was set up. Example: "us-east-1".'
+    'Optional. The region in which the cluster was set up. Example: "us-east-1".'
   )
   .action(
-    asyncAction(async (name: string, options: { region: string }) => {
+    asyncAction(async (name: string, options: { region?: string }) => {
       await awsAuth.authenticate();
-      await awsCluster.destroy(options.region, name);
+      let clusters = await awsLoader.loadClusters();
+      let foundCluster = null;
+      for (let cluster of clusters) {
+        if (options.region && cluster.region !== options.region) {
+          continue;
+        }
+        if (cluster.name === name) {
+          if (foundCluster) {
+            if (options.region) {
+              // This should never happen, actually. AWS does not allow several clusters with the same name in the same region.
+              throw new Error(
+                `There are several clusters named ${
+                  cluster.name
+                } in the region ${options.region}.`
+              );
+            } else {
+              throw new Error(
+                `There are several clusters named ${
+                  cluster.name
+                }. Please use --region to limit results.`
+              );
+            }
+          }
+          foundCluster = cluster;
+        }
+      }
+      if (!foundCluster) {
+        throw new Error(`No cluster ${name} could be found.`);
+      }
+      await awsCluster.destroy(foundCluster.region, foundCluster.name);
     })
   );
 
@@ -238,5 +269,31 @@ program.command("*").action(cmd => {
   console.logError(`Unknown command: ${cmd}.`);
   process.exit(1);
 });
+
+async function ensureRegionProvided<T extends { region?: string }>(
+  options: T
+): Promise<
+  T & {
+    region: string;
+  }
+> {
+  if (!options.region) {
+    let answers = await inquirer.prompt([
+      {
+        type: "list",
+        name: "region",
+        message: "Which region do you want to create your cluster in?",
+        choices: regions.ECS_REGIONS.map(region => {
+          return `${region.id} - ${region.label}`;
+        })
+      }
+    ]);
+    [options.region] = answers["region"].split(" ");
+    if (!options.region) {
+      throw new Error();
+    }
+  }
+  return options as any;
+}
 
 program.parse(process.argv);

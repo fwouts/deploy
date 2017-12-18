@@ -19,6 +19,10 @@ module.exports = {
       {
         test: /\.js$/,
         use: ["remove-hashbag-loader"]
+      },
+      {
+        test: /rx\.lite\.aggregates\.js/,
+        use: "imports-loader?define=>false"
       }
     ]
   },
