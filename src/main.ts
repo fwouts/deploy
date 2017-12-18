@@ -1,3 +1,7 @@
+// Necessary to prevent JSONStream from listening to process.stdin and crashing on keyboard input.
+// See https://github.com/apocas/dockerode/issues/426 for details.
+process.title = "browser";
+
 import "source-map-support/register";
 import "./commands/create-cluster";
 import "./commands/create-deployment";

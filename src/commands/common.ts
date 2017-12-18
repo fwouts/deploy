@@ -13,14 +13,10 @@ export function checkedEnvironmentAction(f: (...args: any[]) => Promise<any>) {
     await f(...args);
   }
   return (...args: any[]) => {
-    checked(...args)
-      .catch(error => {
-        console.logError(error);
-        process.exit(1);
-      })
-      .then(() => {
-        process.exit(0);
-      });
+    checked(...args).catch(error => {
+      console.logError(error);
+      process.exit(1);
+    });
   };
 }
 
