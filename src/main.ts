@@ -128,7 +128,7 @@ program
   .command("create-deployment <name> <path-to-Dockerfile>")
   .option(
     "-c, --cluster <cluster>",
-    "Required. The name of the cluster in which to deploy."
+    "Optional. The name of the cluster in which to deploy."
   )
   .option(
     "-r, --region <region>",
@@ -157,43 +157,55 @@ program
         name: string,
         dockerfilePath: string,
         options: {
-          cluster: string;
+          cluster?: string;
           region?: string;
           desired_count: number;
           memory: number;
           cpu?: number;
         }
       ) => {
-        if (!options.cluster) {
-          throw new Error(
-            `Please specify a cluster to create the deployment in.`
-          );
-        }
         await awsAuth.authenticate();
         let clusters = await awsLoader.loadClusters();
         let foundCluster = null;
-        for (let cluster of clusters) {
-          if (options.region && cluster.region !== options.region) {
-            continue;
-          }
-          if (cluster.name === options.cluster) {
-            if (foundCluster) {
-              if (options.region) {
-                // This should never happen, actually. AWS does not allow several clusters with the same name in the same region.
-                throw new Error(
-                  `There are several clusters named ${
-                    cluster.name
-                  } in the region ${options.region}.`
-                );
-              } else {
-                throw new Error(
-                  `There are several clusters named ${
-                    cluster.name
-                  }. Please use --region to limit results.`
-                );
-              }
+        if (!options.cluster) {
+          // TODO: Also offer to create a new cluster.
+          let answers = await inquirer.prompt([
+            {
+              type: "list",
+              name: "cluster",
+              message: "Which cluster do you want to deploy in?",
+              choices: clusters.map(cluster => {
+                return `${cluster.name} (${cluster.region})`;
+              })
             }
-            foundCluster = cluster;
+          ]);
+          foundCluster = clusters.find(cluster => {
+            return `${cluster.name} (${cluster.region})` === answers["cluster"];
+          });
+        } else {
+          for (let cluster of clusters) {
+            if (options.region && cluster.region !== options.region) {
+              continue;
+            }
+            if (cluster.name === options.cluster) {
+              if (foundCluster) {
+                if (options.region) {
+                  // This should never happen, actually. AWS does not allow several clusters with the same name in the same region.
+                  throw new Error(
+                    `There are several clusters named ${
+                      cluster.name
+                    } in the region ${options.region}.`
+                  );
+                } else {
+                  throw new Error(
+                    `There are several clusters named ${
+                      cluster.name
+                    }. Please use --region to limit results.`
+                  );
+                }
+              }
+              foundCluster = cluster;
+            }
           }
         }
         if (!foundCluster) {
