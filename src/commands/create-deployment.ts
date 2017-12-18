@@ -1,6 +1,7 @@
 import * as awsDeployment from "../service/aws/deployment/adhoc";
 import * as awsLoader from "../service/aws/loader";
 import * as console from "../service/console";
+import * as fs from "fs";
 import * as inquirer from "inquirer";
 import * as loadBalancers from "../service/aws/resources/loadbalancers";
 import * as program from "commander";
@@ -9,7 +10,7 @@ import * as regions from "../service/aws/resources/regions";
 import { checkedEnvironmentAction, inputInteger, inputName } from "./common";
 
 program
-  .command("create-deployment <path-to-Dockerfile> [name]")
+  .command("create-deployment [path-to-Dockerfile] [name]")
   .option(
     "-c, --cluster <cluster>",
     "Optional. The name of the cluster in which to deploy."
@@ -36,7 +37,7 @@ program
   .action(
     checkedEnvironmentAction(
       async (
-        dockerfilePath: string,
+        dockerfilePath: string | undefined,
         name: string | undefined,
         options: {
           cluster?: string;
@@ -46,6 +47,17 @@ program
           cpu?: number;
         }
       ) => {
+        if (!dockerfilePath) {
+          // Check if there is a Dockerfile in the current path.
+          // If not, fail and ask for one to be provided.
+          // TODO: Alternatively, offer to create a Dockerfile automatically.
+          dockerfilePath = "./Dockerfile";
+        }
+        if (!fs.existsSync(dockerfilePath)) {
+          throw new Error(
+            `No Dockerfile found at path ${dockerfilePath}. Please specify one.`
+          );
+        }
         let clusters = await awsLoader.loadClusters();
         if (clusters.length === 0) {
           throw new Error(
