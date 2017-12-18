@@ -2,7 +2,7 @@ export function getResourceNames(deploymentId: string) {
   return {
     cloudFormationStack: "deployment-" + deploymentId,
     loadBalancer: deploymentId + "-loadbalancer",
-    loadBalancerSecurityGroup: deploymentId + "-loadBalancerSecurityGroup",
+    loadBalancerSecurityGroup: deploymentId + "-loadbalancersecuritygroup",
     taskDefinition: deploymentId + "-taskdefinition",
     service: deploymentId + "-service",
     container: deploymentId + "-container",
