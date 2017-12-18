@@ -5,6 +5,7 @@ import * as awsCluster from "./service/aws/cluster/adhoc";
 import * as awsDeployment from "./service/aws/deployment/adhoc";
 import * as awsLoader from "./service/aws/loader";
 import * as console from "./service/console";
+import * as docker from "./service/docker";
 import * as inquirer from "inquirer";
 import * as program from "commander";
 import * as regions from "./service/aws/resources/regions";
@@ -14,9 +15,14 @@ const VERSION = "0.0.4";
 
 program.version(VERSION);
 
-function asyncAction(f: (...args: any[]) => Promise<any>) {
+function checkedEnvironmentAction(f: (...args: any[]) => Promise<any>) {
+  async function checked(...args: any[]) {
+    await awsAuth.authenticate();
+    await docker.checkEnvironment();
+    await f(...args);
+  }
   return (...args: any[]) => {
-    f(...args)
+    checked(...args)
       .catch(error => {
         console.logError(error);
         process.exit(1);
@@ -28,8 +34,7 @@ function asyncAction(f: (...args: any[]) => Promise<any>) {
 }
 
 program.command("list-clusters").action(
-  asyncAction(async () => {
-    await awsAuth.authenticate();
+  checkedEnvironmentAction(async () => {
     let clusters = await awsLoader.loadClusters();
     console.logInfo(JSON.stringify(clusters, null, 2));
   })
@@ -53,7 +58,7 @@ program
     1
   )
   .action(
-    asyncAction(
+    checkedEnvironmentAction(
       async (
         name: string,
         options: {
@@ -63,7 +68,6 @@ program
         }
       ) => {
         let optionsWithRegion = await ensureRegionProvided(options);
-        await awsAuth.authenticate();
         await awsCluster.createCluster({
           name: name,
           region: optionsWithRegion.region,
@@ -81,44 +85,44 @@ program
     'Optional. The region in which the cluster was set up. Example: "us-east-1".'
   )
   .action(
-    asyncAction(async (name: string, options: { region?: string }) => {
-      await awsAuth.authenticate();
-      let clusters = await awsLoader.loadClusters();
-      let foundCluster = null;
-      for (let cluster of clusters) {
-        if (options.region && cluster.region !== options.region) {
-          continue;
-        }
-        if (cluster.name === name) {
-          if (foundCluster) {
-            if (options.region) {
-              // This should never happen, actually. AWS does not allow several clusters with the same name in the same region.
-              throw new Error(
-                `There are several clusters named ${
-                  cluster.name
-                } in the region ${options.region}.`
-              );
-            } else {
-              throw new Error(
-                `There are several clusters named ${
-                  cluster.name
-                }. Please use --region to limit results.`
-              );
-            }
+    checkedEnvironmentAction(
+      async (name: string, options: { region?: string }) => {
+        let clusters = await awsLoader.loadClusters();
+        let foundCluster = null;
+        for (let cluster of clusters) {
+          if (options.region && cluster.region !== options.region) {
+            continue;
           }
-          foundCluster = cluster;
+          if (cluster.name === name) {
+            if (foundCluster) {
+              if (options.region) {
+                // This should never happen, actually. AWS does not allow several clusters with the same name in the same region.
+                throw new Error(
+                  `There are several clusters named ${
+                    cluster.name
+                  } in the region ${options.region}.`
+                );
+              } else {
+                throw new Error(
+                  `There are several clusters named ${
+                    cluster.name
+                  }. Please use --region to limit results.`
+                );
+              }
+            }
+            foundCluster = cluster;
+          }
         }
+        if (!foundCluster) {
+          throw new Error(`No cluster ${name} could be found.`);
+        }
+        await awsCluster.destroy(foundCluster.region, foundCluster.name);
       }
-      if (!foundCluster) {
-        throw new Error(`No cluster ${name} could be found.`);
-      }
-      await awsCluster.destroy(foundCluster.region, foundCluster.name);
-    })
+    )
   );
 
 program.command("list-deployments").action(
-  asyncAction(async () => {
-    await awsAuth.authenticate();
+  checkedEnvironmentAction(async () => {
     let deployments = await awsLoader.loadDeployments();
     console.logInfo(JSON.stringify(deployments, null, 2));
   })
@@ -152,7 +156,7 @@ program
     parseInt
   )
   .action(
-    asyncAction(
+    checkedEnvironmentAction(
       async (
         name: string,
         dockerfilePath: string,
@@ -164,7 +168,6 @@ program
           cpu?: number;
         }
       ) => {
-        await awsAuth.authenticate();
         let clusters = await awsLoader.loadClusters();
         let foundCluster = null;
         if (!options.cluster) {
@@ -240,41 +243,42 @@ program
     "Optional. The region in which the deployment was created."
   )
   .action(
-    asyncAction(async (name: string, options: { region: string }) => {
-      await awsAuth.authenticate();
-      let deployments = await awsLoader.loadDeployments();
-      let foundDeployment = null;
-      for (let deployment of deployments) {
-        if (options.region && deployment.region !== options.region) {
-          continue;
-        }
-        if (deployment.id === name) {
-          if (foundDeployment) {
-            if (options.region) {
-              // This should never happen, but you never know.
-              throw new Error(
-                `There are several deployments named ${name} in the region ${
-                  options.region
-                }.`
-              );
-            } else {
-              throw new Error(
-                `There are several deployments named ${name}. Please use --region to limit results.`
-              );
-            }
+    checkedEnvironmentAction(
+      async (name: string, options: { region: string }) => {
+        let deployments = await awsLoader.loadDeployments();
+        let foundDeployment = null;
+        for (let deployment of deployments) {
+          if (options.region && deployment.region !== options.region) {
+            continue;
           }
-          foundDeployment = deployment;
+          if (deployment.id === name) {
+            if (foundDeployment) {
+              if (options.region) {
+                // This should never happen, but you never know.
+                throw new Error(
+                  `There are several deployments named ${name} in the region ${
+                    options.region
+                  }.`
+                );
+              } else {
+                throw new Error(
+                  `There are several deployments named ${name}. Please use --region to limit results.`
+                );
+              }
+            }
+            foundDeployment = deployment;
+          }
         }
+        if (!foundDeployment) {
+          throw new Error(`No deployment ${name} could be found.`);
+        }
+        await awsDeployment.destroy(
+          foundDeployment.region,
+          foundDeployment.clusterName,
+          foundDeployment.id
+        );
       }
-      if (!foundDeployment) {
-        throw new Error(`No deployment ${name} could be found.`);
-      }
-      await awsDeployment.destroy(
-        foundDeployment.region,
-        foundDeployment.clusterName,
-        foundDeployment.id
-      );
-    })
+    )
   );
 
 program.command("*").action(cmd => {

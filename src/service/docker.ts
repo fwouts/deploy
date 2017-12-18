@@ -1,11 +1,16 @@
 import * as Docker from "dockerode";
 import * as console from "./console";
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import * as tar from "tar-fs";
 
+export async function checkEnvironment() {
+  await getDocker();
+}
+
 export async function createDockerImage(dockerfilePath: string, name: string) {
-  let docker = new Docker({ socketPath: "/var/run/docker.sock" });
+  let docker = await getDocker();
   if (!dockerfilePath) {
     throw new Error(`Please select a Dockerfile!`);
   }
@@ -31,7 +36,7 @@ export async function createDockerImage(dockerfilePath: string, name: string) {
 }
 
 export async function getExposedPort(tag: string): Promise<number> {
-  let docker = new Docker({ socketPath: "/var/run/docker.sock" });
+  let docker = await getDocker();
   let image = docker.getImage(tag);
   let imageInspectInfo = await image.inspect();
   let exposedPort = null;
@@ -61,7 +66,7 @@ export async function pushDockerImage(
   authConfig?: { username: string; password: string }
 ): Promise<string> {
   let pushTag = repositoryUri + ":" + tag;
-  let docker = new Docker({ socketPath: "/var/run/docker.sock" });
+  let docker = await getDocker();
   let image = docker.getImage(sourceImage);
   await image
     .tag({
@@ -92,4 +97,22 @@ export async function pushDockerImage(
     });
   });
   return pushTag;
+}
+
+export async function getDocker() {
+  let docker = new Docker({
+    socketPath: process.env.DOCKER_SOCKET || "/var/run/docker.sock"
+  });
+  try {
+    await docker.info();
+  } catch (e) {
+    if (e.code === "ENOENT") {
+      throw new Error(
+        "Docker does not seem to be installed locally. Please visit https://docs.docker.com/engine/installation for more information."
+      );
+    } else {
+      throw e;
+    }
+  }
+  return docker;
 }
