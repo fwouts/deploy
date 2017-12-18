@@ -17,7 +17,7 @@ module.exports = {
         exclude: /node_modules/
       },
       {
-        test: /\.js$/,
+        test: /JSONStream\/index\.js$/,
         use: ["remove-hashbag-loader"]
       },
       {
