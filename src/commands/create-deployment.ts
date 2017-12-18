@@ -1,7 +1,10 @@
 import * as awsDeployment from "../service/aws/deployment/adhoc";
 import * as awsLoader from "../service/aws/loader";
+import * as console from "../service/console";
 import * as inquirer from "inquirer";
+import * as loadBalancers from "../service/aws/resources/loadbalancers";
 import * as program from "commander";
+import * as regions from "../service/aws/resources/regions";
 
 import { checkedEnvironmentAction, inputInteger, inputName } from "./common";
 
@@ -93,6 +96,14 @@ program
         }
         if (!foundCluster) {
           throw new Error(`No cluster ${options.cluster} could be found.`);
+        }
+        if (loadBalancers.USD_MIN_PRICE_PER_MONTH[foundCluster.region]) {
+          let regionLabel = regions.getRegionLabel(foundCluster.region);
+          console.logInfo(
+            `Each deployment comes with its own application load balancer. In the region ${regionLabel}, it may cost a minimum of USD$${
+              loadBalancers.USD_MIN_PRICE_PER_MONTH[foundCluster.region]
+            }/month. For more information, see https://aws.amazon.com/elasticloadbalancing/pricing.`
+          );
         }
         if (!name) {
           name = await inputName(

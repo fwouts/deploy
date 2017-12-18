@@ -1,6 +1,32 @@
 import * as ELBv2 from "aws-sdk/clients/elbv2";
 import * as tags from "./tags";
 
+const HOURS_IN_A_MONTH = 31 * 24;
+
+// Prices from https://aws.amazon.com/elasticloadbalancing/pricing/
+// Note: all regions from regions.ts should be covered.
+// Last updated on 18 Dec 2017.
+export const USD_MIN_PRICE_PER_HOUR: { [region: string]: number } = {
+  "us-east-2": 0.0225,
+  "us-east-1": 0.0225,
+  "us-west-2": 0.0225,
+  "us-west-1": 0.0252,
+  "ca-central-1": 0.02475,
+  "eu-central-1": 0.027,
+  "eu-west-2": 0.02646,
+  "eu-west-1": 0.0252,
+  "ap-northeast-2": 0.0225,
+  "ap-northeast-1": 0.0243,
+  "ap-southeast-2": 0.0252,
+  "ap-southeast-1": 0.0252
+};
+
+export const USD_MIN_PRICE_PER_MONTH: { [region: string]: number } = {};
+for (let [region, pricePerHour] of Object.entries(USD_MIN_PRICE_PER_HOUR)) {
+  USD_MIN_PRICE_PER_MONTH[region] =
+    Math.round(pricePerHour * HOURS_IN_A_MONTH * 100) / 100;
+}
+
 export interface LoadBalancer {
   arn: string;
   name: string;

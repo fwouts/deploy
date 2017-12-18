@@ -54,3 +54,12 @@ export const ECS_REGIONS = [
     label: "Asia Pacific (Singapore)"
   }
 ];
+
+export function getRegionLabel(regionId: string) {
+  for (let region of ECS_REGIONS) {
+    if (region.id === regionId) {
+      return region.label;
+    }
+  }
+  return "Unknown region";
+}
