@@ -3,7 +3,7 @@ import * as awsLoader from "../service/aws/loader";
 import * as inquirer from "inquirer";
 import * as program from "commander";
 
-import { checkedEnvironmentAction, inputName } from "./common";
+import { checkedEnvironmentAction, inputInteger, inputName } from "./common";
 
 program
   .command("create-deployment <path-to-Dockerfile> [name]")
@@ -18,14 +18,12 @@ program
   .option(
     "-n, --desired_count <desired-count>",
     "Optional. The number of Docker containers you wish to run. Default: 1.",
-    parseInt,
-    1
+    parseInt
   )
   .option(
     "--memory <memory>",
     "Optional. The amount of memory (in MB) to allocate per container. Default: 512.",
-    parseInt,
-    512
+    parseInt
   )
   .option(
     "--cpu <cpu-units>",
@@ -95,6 +93,18 @@ program
         }
         if (!foundCluster) {
           throw new Error(`No cluster ${options.cluster} could be found.`);
+        }
+        if (!options.desired_count) {
+          options.desired_count = await inputInteger(
+            "How many Docker containers should be deployed?",
+            1
+          );
+        }
+        if (!options.memory) {
+          options.memory = await inputInteger(
+            "How much memory should be allocated to each container (in MB)?",
+            512
+          );
         }
         await awsDeployment.deploy(
           {

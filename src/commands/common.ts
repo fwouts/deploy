@@ -44,6 +44,27 @@ export async function inputName(message: string): Promise<string> {
   return answers["name"];
 }
 
+export async function inputInteger(
+  message: string,
+  defaultValue?: number
+): Promise<number> {
+  let answers = await inquirer.prompt([
+    {
+      type: "input",
+      name: "name",
+      message: message,
+      validate(input: string): true | string {
+        if (input.length > 0 && parseInt(input).toString(10) !== input) {
+          return "Please enter an integer.";
+        }
+        return true;
+      },
+      default: defaultValue
+    }
+  ]);
+  return answers["name"];
+}
+
 export async function ensureRegionProvided<T extends { region?: string }>(
   options: T
 ): Promise<
