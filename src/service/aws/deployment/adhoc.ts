@@ -200,7 +200,9 @@ export async function deploy(
     serviceCreated = true;
 
     console.logSuccess(
-      `Deployed successfully at ${loadBalancer.dns} (live in a few minutes).`
+      `Deployed successfully at http://${
+        loadBalancer.dns
+      } (live in a few minutes).`
     );
 
     return {
