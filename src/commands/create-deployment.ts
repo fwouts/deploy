@@ -43,12 +43,12 @@ program
           cpu?: number;
         }
       ) => {
-        if (!name) {
-          name = await inputName(
-            `Please choose a name for your deployment (e.g. "hello")`
+        let clusters = await awsLoader.loadClusters();
+        if (clusters.length === 0) {
+          throw new Error(
+            `No clusters are available. Please create one first.`
           );
         }
-        let clusters = await awsLoader.loadClusters();
         let foundCluster = null;
         if (!options.cluster) {
           // TODO: Also offer to create a new cluster.
@@ -93,6 +93,11 @@ program
         }
         if (!foundCluster) {
           throw new Error(`No cluster ${options.cluster} could be found.`);
+        }
+        if (!name) {
+          name = await inputName(
+            `Please choose a name for your deployment (e.g. "hello")`
+          );
         }
         if (!options.desired_count) {
           options.desired_count = await inputInteger(
