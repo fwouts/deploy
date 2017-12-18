@@ -1,5 +1,6 @@
 import * as awsCluster from "../service/aws/cluster/adhoc";
 import * as awsLoader from "../service/aws/loader";
+import * as inquirer from "inquirer";
 import * as program from "commander";
 
 import { checkedEnvironmentAction } from "./common";
@@ -12,31 +13,50 @@ program
   )
   .action(
     checkedEnvironmentAction(
-      async (name: string, options: { region?: string }) => {
+      async (name: string | undefined, options: { region?: string }) => {
         let clusters = await awsLoader.loadClusters();
+        if (clusters.length === 0) {
+          throw new Error(`No clusters are available.`);
+        }
         let foundCluster = null;
-        for (let cluster of clusters) {
-          if (options.region && cluster.region !== options.region) {
-            continue;
-          }
-          if (cluster.name === name) {
-            if (foundCluster) {
-              if (options.region) {
-                // This should never happen, actually. AWS does not allow several clusters with the same name in the same region.
-                throw new Error(
-                  `There are several clusters named ${
-                    cluster.name
-                  } in the region ${options.region}.`
-                );
-              } else {
-                throw new Error(
-                  `There are several clusters named ${
-                    cluster.name
-                  }. Please use --region to limit results.`
-                );
-              }
+        if (!name) {
+          let answers = await inquirer.prompt([
+            {
+              type: "list",
+              name: "cluster",
+              message: "Which cluster do you want to destroy?",
+              choices: clusters.map(cluster => {
+                return `${cluster.name} (${cluster.region})`;
+              })
             }
-            foundCluster = cluster;
+          ]);
+          foundCluster = clusters.find(cluster => {
+            return `${cluster.name} (${cluster.region})` === answers["cluster"];
+          });
+        } else {
+          for (let cluster of clusters) {
+            if (options.region && cluster.region !== options.region) {
+              continue;
+            }
+            if (cluster.name === name) {
+              if (foundCluster) {
+                if (options.region) {
+                  // This should never happen, actually. AWS does not allow several clusters with the same name in the same region.
+                  throw new Error(
+                    `There are several clusters named ${
+                      cluster.name
+                    } in the region ${options.region}.`
+                  );
+                } else {
+                  throw new Error(
+                    `There are several clusters named ${
+                      cluster.name
+                    }. Please use --region to limit results.`
+                  );
+                }
+              }
+              foundCluster = cluster;
+            }
           }
         }
         if (!foundCluster) {
