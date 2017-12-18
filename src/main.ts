@@ -13,6 +13,8 @@ import * as regions from "./service/aws/resources/regions";
 // TODO: Make sure this stays in sync with package.json.
 const VERSION = "0.0.4";
 
+const MAX_NAME_LENGTH = 8;
+
 program.version(VERSION);
 
 function checkedEnvironmentAction(f: (...args: any[]) => Promise<any>) {
@@ -41,7 +43,7 @@ program.command("list-clusters").action(
 );
 
 program
-  .command("create-cluster <name>")
+  .command("create-cluster [name]")
   .option(
     "-r, --region <region>",
     "Optional. The region in which to set up the cluster. Prompted if not specified."
@@ -60,13 +62,18 @@ program
   .action(
     checkedEnvironmentAction(
       async (
-        name: string,
+        name: string | undefined,
         options: {
           region?: string;
           instance_type: string;
           instance_count: number;
         }
       ) => {
+        if (!name) {
+          name = await inputName(
+            `Please choose a name for your cluster (e.g. "staging")`
+          );
+        }
         let optionsWithRegion = await ensureRegionProvided(options);
         await awsCluster.createCluster({
           name: name,
@@ -79,7 +86,7 @@ program
   );
 
 program
-  .command("destroy-cluster <name>")
+  .command("destroy-cluster [name]")
   .option(
     "-r, --region <region>",
     'Optional. The region in which the cluster was set up. Example: "us-east-1".'
@@ -129,7 +136,7 @@ program.command("list-deployments").action(
 );
 
 program
-  .command("create-deployment <name> <path-to-Dockerfile>")
+  .command("create-deployment <path-to-Dockerfile> [name]")
   .option(
     "-c, --cluster <cluster>",
     "Optional. The name of the cluster in which to deploy."
@@ -158,8 +165,8 @@ program
   .action(
     checkedEnvironmentAction(
       async (
-        name: string,
         dockerfilePath: string,
+        name: string | undefined,
         options: {
           cluster?: string;
           region?: string;
@@ -168,6 +175,11 @@ program
           cpu?: number;
         }
       ) => {
+        if (!name) {
+          name = await inputName(
+            `Please choose a name for your deployment (e.g. "hello")`
+          );
+        }
         let clusters = await awsLoader.loadClusters();
         let foundCluster = null;
         if (!options.cluster) {
@@ -285,6 +297,26 @@ program.command("*").action(cmd => {
   console.logError(`Unknown command: ${cmd}.`);
   process.exit(1);
 });
+
+async function inputName(message: string): Promise<string> {
+  let answers = await inquirer.prompt([
+    {
+      type: "input",
+      name: "name",
+      message: message,
+      validate(input: string): true | string {
+        if (typeof input !== "string" || !input.match(/^[a-z][a-z0-9]*$/)) {
+          return "Please enter an alphanumeric sequence starting with a character.";
+        }
+        if (input.length > MAX_NAME_LENGTH) {
+          return `Please enter a shorter name (max ${MAX_NAME_LENGTH} characters).`;
+        }
+        return true;
+      }
+    }
+  ]);
+  return answers["name"];
+}
 
 async function ensureRegionProvided<T extends { region?: string }>(
   options: T
