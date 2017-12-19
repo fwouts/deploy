@@ -2,7 +2,7 @@ import * as ELBv2 from "aws-sdk/clients/elbv2";
 import * as Route53 from "aws-sdk/clients/route53";
 import * as console from "../console";
 
-export async function switchRoute53(
+export async function map(
   region: string,
   deploymentId: string,
   domain: string,

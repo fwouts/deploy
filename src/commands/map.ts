@@ -102,7 +102,7 @@ program
         if (subdomain.length === 0) {
           subdomain = "@";
         }
-        await route53.switchRoute53(
+        await route53.map(
           foundDeployment.region,
           foundDeployment.id,
           rootDomain,
