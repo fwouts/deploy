@@ -130,6 +130,8 @@ program
           let regionLabel = regions.getRegionLabel(foundCluster.region);
           console.logInfo(
             `Each deployment comes with its own application load balancer. In the region ${regionLabel}, it may cost a minimum of USD$${
+              loadBalancers.USD_MIN_PRICE_PER_HOUR[foundCluster.region]
+            }/hour. If you keep it up for a month, it could cost you about USD$${
               loadBalancers.USD_MIN_PRICE_PER_MONTH[foundCluster.region]
             }/month. For more information, see https://aws.amazon.com/elasticloadbalancing/pricing.`
           );
