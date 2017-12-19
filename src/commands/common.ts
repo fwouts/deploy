@@ -2,7 +2,6 @@ import * as awsAuth from "../service/aws/auth";
 import * as console from "../service/console";
 import * as docker from "../service/docker";
 import * as inquirer from "inquirer";
-import * as regions from "../service/aws/resources/regions";
 
 const MAX_NAME_LENGTH = 8;
 
@@ -67,30 +66,4 @@ export async function inputInteger(
     }
   ]);
   return answers["name"];
-}
-
-export async function ensureRegionProvided<T extends { region?: string }>(
-  options: T
-): Promise<
-  T & {
-    region: string;
-  }
-> {
-  if (!options.region) {
-    let answers = await inquirer.prompt([
-      {
-        type: "list",
-        name: "region",
-        message: "Which region do you want to create your cluster in?",
-        choices: regions.ECS_REGIONS.map(region => {
-          return `${region.id} - ${region.label}`;
-        })
-      }
-    ]);
-    [options.region] = answers["region"].split(" ");
-    if (!options.region) {
-      throw new Error();
-    }
-  }
-  return options as any;
 }

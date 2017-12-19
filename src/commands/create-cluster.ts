@@ -2,13 +2,9 @@ import * as awsCluster from "../service/aws/cluster/adhoc";
 import * as inquirer from "inquirer";
 import * as instanceTypes from "../service/aws/resources/instancetypes";
 import * as program from "commander";
+import * as regions from "../service/aws/resources/regions";
 
-import {
-  checkedEnvironmentAction,
-  ensureRegionProvided,
-  inputInteger,
-  inputName
-} from "./common";
+import { checkedEnvironmentAction, inputInteger, inputName } from "./common";
 
 program
   .command("create-cluster [name]")
@@ -42,23 +38,36 @@ program
             ""
           );
         }
-        let optionsWithRegion = await ensureRegionProvided(options);
-        if (!optionsWithRegion.instance_type) {
-          optionsWithRegion.instance_type = await inputInstanceType(
-            optionsWithRegion.region
-          );
+        if (!options.region) {
+          let answers = await inquirer.prompt([
+            {
+              type: "list",
+              name: "region",
+              message: "Which region do you want to create your cluster in?",
+              choices: regions.ECS_REGIONS.map(region => {
+                return `${region.id} - ${region.label}`;
+              })
+            }
+          ]);
+          [options.region] = answers["region"].split(" ");
+          if (!options.region) {
+            throw new Error();
+          }
         }
-        if (!optionsWithRegion.instance_count) {
-          optionsWithRegion.instance_count = await inputInteger(
+        if (!options.instance_type) {
+          options.instance_type = await inputInstanceType(options.region);
+        }
+        if (!options.instance_count) {
+          options.instance_count = await inputInteger(
             `How many EC2 instances should be created?`,
             1
           );
         }
         await awsCluster.createCluster({
           name: name,
-          region: optionsWithRegion.region,
-          ec2InstanceType: optionsWithRegion.instance_type,
-          ec2InstanceCount: optionsWithRegion.instance_count
+          region: options.region,
+          ec2InstanceType: options.instance_type,
+          ec2InstanceCount: options.instance_count
         });
       }
     )
