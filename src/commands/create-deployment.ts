@@ -35,6 +35,21 @@ program
     "Optional. The amount of CPU units (1024 = 1 vCPU) to allocate per container. No default.",
     parseInt
   )
+  .option(
+    "-e, --env <key=value>",
+    "Optional. Environment variables (can be used several times).",
+    (keyValue: string, env: { [key: string]: string }) => {
+      if (keyValue.indexOf("=") === -1) {
+        throw new Error(
+          `Environment variables must be specified with the format: key=value.`
+        );
+      }
+      let [key, value] = keyValue.split("=", 1);
+      env[key] = value;
+      return env;
+    },
+    {}
+  )
   .action(
     checkedEnvironmentAction(
       async (
@@ -46,6 +61,7 @@ program
           desired_count: number;
           memory: number;
           cpu?: number;
+          env: { [key: string]: string };
         }
       ) => {
         if (!dockerfilePath) {
@@ -148,8 +164,7 @@ program
               cpuUnits: options.cpu
             },
             desiredCount: options.desired_count,
-            // TODO: Add support for environment.
-            environment: {}
+            environment: options.env
           },
           name
         );
