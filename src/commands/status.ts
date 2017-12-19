@@ -50,21 +50,17 @@ program
         }
         if (cluster.desiredInstanceCount !== undefined) {
           console.logInfo(
-            `- Desired instance count: ${cluster.desiredInstanceCount}`
+            `- Desired instances: ${cluster.desiredInstanceCount}`
           );
         }
         if (cluster.instanceCount !== undefined) {
-          console.logInfo(`- Actual instance count: ${cluster.instanceCount}`);
+          console.logInfo(`- Running instances: ${cluster.instanceCount}`);
         }
         if (cluster.minInstanceCount !== undefined) {
-          console.logInfo(
-            `- Minimum instance count: ${cluster.minInstanceCount}`
-          );
+          console.logInfo(`- Minimum instances: ${cluster.minInstanceCount}`);
         }
         if (cluster.maxInstanceCount !== undefined) {
-          console.logInfo(
-            `- Maximum instance count: ${cluster.maxInstanceCount}`
-          );
+          console.logInfo(`- Maximum instances: ${cluster.maxInstanceCount}`);
         }
 
         console.logInfo("");
