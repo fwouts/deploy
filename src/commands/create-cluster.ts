@@ -12,6 +12,7 @@ import {
 
 program
   .command("create-cluster [name]")
+  .description("Creates a cluster. Required to host deployments.")
   .option(
     "-r, --region <region>",
     "Optional. The region in which to set up the cluster. Prompted if not specified."

@@ -8,6 +8,7 @@ import { checkedEnvironmentAction } from "./common";
 
 program
   .command("destroy-deployment [name]")
+  .description("Destroys an existing deployment.")
   .option(
     "-r, --region <region>",
     "Optional. The region in which the deployment was created."

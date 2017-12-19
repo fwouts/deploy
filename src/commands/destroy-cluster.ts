@@ -7,6 +7,7 @@ import { checkedEnvironmentAction } from "./common";
 
 program
   .command("destroy-cluster [name]")
+  .description("Destroys an existing cluster.")
   .option(
     "-r, --region <region>",
     'Optional. The region in which the cluster was set up. Example: "us-east-1".'

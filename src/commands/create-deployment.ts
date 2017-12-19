@@ -11,6 +11,7 @@ import { checkedEnvironmentAction, inputInteger, inputName } from "./common";
 
 program
   .command("create-deployment [path-to-Dockerfile] [name]")
+  .description("Creates a deployment from a codebase. Requires a cluster.")
   .option(
     "-c, --cluster <cluster>",
     "Optional. The name of the cluster in which to deploy."
