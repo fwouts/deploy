@@ -44,7 +44,7 @@ program
           `Environment variables must be specified with the format: key=value.`
         );
       }
-      let [key, value] = keyValue.split("=", 1);
+      let [key, value] = keyValue.split("=", 2);
       env[key] = value;
       return env;
     },
