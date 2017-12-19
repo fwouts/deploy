@@ -108,7 +108,7 @@ program
           rootDomain,
           subdomain
         );
-        console.logInfo(
+        console.logSuccess(
           `Deployment ${deploymentId} should soon be accessible at http://${domain}`
         );
       }
