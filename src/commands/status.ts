@@ -74,7 +74,13 @@ program
         } else {
           console.logInfo(`Deployments in cluster '${cluster.name}':`);
           for (let deployment of deploymentsInCluster) {
-            console.logInfo(`- ${deployment.id}: http://${deployment.dns}`);
+            console.logInfo(`- ${deployment.id}:`);
+            console.logInfo(`    URL: http://${deployment.dns}`);
+            console.logInfo(
+              `    Running tasks: ${deployment.runningTasks} (${
+                deployment.desiredTasks
+              } desired, ${deployment.pendingTasks} pending)`
+            );
           }
         }
       }

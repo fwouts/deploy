@@ -3,6 +3,7 @@ import * as ECS from "aws-sdk/clients/ecs";
 import * as ELBv2 from "aws-sdk/clients/elbv2";
 import * as _ from "lodash";
 import * as clusterNames from "./cluster/names";
+import * as deploymentNames from "./deployment/names";
 import * as regions from "./resources/regions";
 import * as tags from "./resources/tags";
 
@@ -119,6 +120,9 @@ export interface Deployment {
   region: string;
   clusterName: string | null;
   dns: string | null;
+  desiredTasks: number;
+  pendingTasks: number;
+  runningTasks: number;
 }
 
 export async function loadDeployments(): Promise<Deployment[]> {
@@ -132,9 +136,9 @@ export async function loadDeployments(): Promise<Deployment[]> {
 async function loadDeploymentsFromRegion(
   region: string
 ): Promise<Deployment[]> {
-  let deployments = [];
   let deploymentIds = new Set<string>();
   let loadBalancers = await loadLoadBalancersFromRegion(region);
+  let deploymentPromises = [];
   for (let loadBalancer of loadBalancers) {
     if (deploymentIds.has(loadBalancer.deploymentId)) {
       // There are two load balancers for this deployment. This is not expected.
@@ -145,14 +149,16 @@ async function loadDeploymentsFromRegion(
       );
     }
     deploymentIds.add(loadBalancer.deploymentId);
-    deployments.push({
-      id: loadBalancer.deploymentId,
-      region,
-      clusterName: loadBalancer.clusterName,
-      dns: loadBalancer.dns
-    });
+    deploymentPromises.push(
+      loadDeployment(
+        region,
+        loadBalancer.deploymentId,
+        loadBalancer.clusterName,
+        loadBalancer.dns
+      )
+    );
   }
-  return deployments;
+  return Promise.all(deploymentPromises);
 }
 
 interface LoadBalancer {
@@ -220,6 +226,58 @@ async function loadLoadBalancersFromRegion(
     }
   }
   return loadBalancers;
+}
+
+async function loadDeployment(
+  region: string,
+  deploymentId: string,
+  clusterName: string | null,
+  loadBalancerDns: string
+): Promise<Deployment> {
+  if (!clusterName) {
+    return {
+      id: deploymentId,
+      region: region,
+      clusterName: clusterName,
+      dns: loadBalancerDns,
+      desiredTasks: 0,
+      pendingTasks: 0,
+      runningTasks: 0
+    };
+  }
+  let ecs = new ECS({
+    region: region
+  });
+  let servicesDescription = await ecs
+    .describeServices({
+      cluster: clusterName,
+      services: [deploymentNames.getResourceNames(deploymentId).service]
+    })
+    .promise();
+  if (
+    !servicesDescription.services ||
+    servicesDescription.services.length === 0
+  ) {
+    return {
+      id: deploymentId,
+      region: region,
+      clusterName: clusterName,
+      dns: loadBalancerDns,
+      desiredTasks: 0,
+      pendingTasks: 0,
+      runningTasks: 0
+    };
+  }
+  let service = servicesDescription.services[0];
+  return {
+    id: deploymentId,
+    region: region,
+    clusterName: clusterName,
+    dns: loadBalancerDns,
+    desiredTasks: service.desiredCount || 0,
+    pendingTasks: service.pendingCount || 0,
+    runningTasks: service.runningCount || 0
+  };
 }
 
 export interface Page<T> {
