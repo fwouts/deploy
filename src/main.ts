@@ -8,6 +8,7 @@ import "./commands/destroy-cluster";
 import "./commands/push";
 import "./commands/kill";
 import "./commands/map";
+import "./commands/unmap";
 import "./commands/status";
 
 import * as console from "./service/console";

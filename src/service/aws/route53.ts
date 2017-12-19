@@ -61,3 +61,55 @@ export async function map(
     .promise();
   console.logInfo(`Route 53 record set updated.`);
 }
+
+export async function unmap(
+  rootDomain: string,
+  subdomain: string | "@"
+): Promise<void> {
+  let route53 = new Route53();
+  let hostedZonesList = await route53
+    .listHostedZonesByName({
+      DNSName: rootDomain
+    })
+    .promise();
+  if (hostedZonesList.HostedZones.length === 0) {
+    throw new Error("No hosted zone in Route 53 for " + rootDomain);
+  }
+  let hostedZoneId = hostedZonesList.HostedZones[0].Id;
+  let recordName =
+    (subdomain === "@" ? "" : subdomain + ".") + rootDomain + ".";
+  let recordSetsList = await route53
+    .listResourceRecordSets({
+      HostedZoneId: hostedZoneId,
+      StartRecordName: recordName
+    })
+    .promise();
+  if (
+    !recordSetsList.ResourceRecordSets ||
+    recordSetsList.ResourceRecordSets.length === 0
+  ) {
+    throw new Error(`No record set found for ${recordName}`);
+  }
+  let recordSet = recordSetsList.ResourceRecordSets[0];
+  if (recordSet.Name !== recordName) {
+    throw new Error(`No record set found for ${recordName}`);
+  }
+  await route53
+    .changeResourceRecordSets({
+      ChangeBatch: {
+        Changes: [
+          {
+            Action: "DELETE",
+            ResourceRecordSet: {
+              Name: recordName,
+              Type: "A",
+              AliasTarget: recordSet.AliasTarget
+            }
+          }
+        ]
+      },
+      HostedZoneId: hostedZoneId
+    })
+    .promise();
+  console.logInfo(`Route 53 record set updated.`);
+}
