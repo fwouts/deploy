@@ -5,17 +5,17 @@ import * as console from "../console";
 export async function map(
   region: string,
   deploymentId: string,
-  domain: string,
+  rootDomain: string,
   subdomain: string | "@"
 ): Promise<void> {
   let route53 = new Route53();
   let hostedZonesList = await route53
     .listHostedZonesByName({
-      DNSName: domain
+      DNSName: rootDomain
     })
     .promise();
   if (hostedZonesList.HostedZones.length === 0) {
-    throw new Error("No hosted zone in Route 53 for: " + domain);
+    throw new Error("No hosted zone in Route 53 for " + rootDomain);
   }
   let hostedZoneId = hostedZonesList.HostedZones[0].Id;
   let elbName = deploymentId + "-loadbalancer";
@@ -44,7 +44,8 @@ export async function map(
           {
             Action: "UPSERT",
             ResourceRecordSet: {
-              Name: (subdomain === "@" ? "" : subdomain + ".") + domain + ".",
+              Name:
+                (subdomain === "@" ? "" : subdomain + ".") + rootDomain + ".",
               Type: "A",
               AliasTarget: {
                 DNSName: "dualstack." + loadBalancer.DNSName,
