@@ -4,9 +4,9 @@ process.title = "browser";
 
 import "source-map-support/register";
 import "./commands/create-cluster";
-import "./commands/create-deployment";
 import "./commands/destroy-cluster";
-import "./commands/destroy-deployment";
+import "./commands/push";
+import "./commands/kill";
 import "./commands/status";
 
 import * as console from "./service/console";
