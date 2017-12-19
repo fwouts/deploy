@@ -38,7 +38,8 @@ program
       ) => {
         if (!name) {
           name = await inputName(
-            `Please choose a name for your cluster (e.g. "staging")`
+            `Please choose a name for your cluster (e.g. "staging")`,
+            ""
           );
         }
         let optionsWithRegion = await ensureRegionProvided(options);

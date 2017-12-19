@@ -22,6 +22,7 @@ export function checkedEnvironmentAction(f: (...args: any[]) => Promise<any>) {
 
 export async function inputName(
   message: string,
+  defaultValue: string,
   alreadyUsed: Set<string> = new Set()
 ): Promise<string> {
   let answers = await inquirer.prompt([
@@ -40,7 +41,8 @@ export async function inputName(
           return `The name ${input} is already used.`;
         }
         return true;
-      }
+      },
+      default: defaultValue
     }
   ]);
   return answers["name"];

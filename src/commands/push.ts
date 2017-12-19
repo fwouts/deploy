@@ -4,6 +4,7 @@ import * as console from "../service/console";
 import * as fs from "fs";
 import * as inquirer from "inquirer";
 import * as loadBalancers from "../service/aws/resources/loadbalancers";
+import * as path from "path";
 import * as program from "commander";
 import * as regions from "../service/aws/resources/regions";
 
@@ -137,10 +138,26 @@ program
           );
         }
         let deployments = await awsLoader.loadDeployments();
+        let existingDeploymentNames = new Set(
+          deployments.map(deployment => deployment.id)
+        );
+        let shortDirectoryName = path
+          .basename(path.dirname(path.resolve(dockerfilePath)))
+          .substr(0, 7);
+        let suffix = 1;
+        while (
+          existingDeploymentNames.has(
+            shortDirectoryName + (suffix === 1 ? "" : suffix)
+          )
+        ) {
+          suffix++;
+        }
+        let proposedName = shortDirectoryName + (suffix === 1 ? "" : suffix);
         if (!name) {
           name = await inputName(
-            `Please choose a name for your deployment (e.g. "hello")`,
-            new Set(deployments.map(deployment => deployment.id))
+            `Please choose a name for your deployment`,
+            proposedName,
+            existingDeploymentNames
           );
         }
         if (!options.desired_count) {
