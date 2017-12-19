@@ -7,7 +7,7 @@ import * as regions from "../service/aws/resources/regions";
 import { checkedEnvironmentAction } from "./common";
 
 program
-  .command("destroy-deployment [name]")
+  .command("kill [name]")
   .description("Destroys an existing deployment.")
   .option(
     "-r, --region <region>",

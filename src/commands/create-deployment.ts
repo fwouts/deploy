@@ -10,7 +10,7 @@ import * as regions from "../service/aws/resources/regions";
 import { checkedEnvironmentAction, inputInteger, inputName } from "./common";
 
 program
-  .command("create-deployment [path-to-Dockerfile] [name]")
+  .command("push [path-to-Dockerfile] [name]")
   .description("Creates a deployment from a codebase. Requires a cluster.")
   .option(
     "-c, --cluster <cluster>",
