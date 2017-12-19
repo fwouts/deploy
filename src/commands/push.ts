@@ -136,9 +136,11 @@ program
             }/month. For more information, see https://aws.amazon.com/elasticloadbalancing/pricing.`
           );
         }
+        let deployments = await awsLoader.loadDeployments();
         if (!name) {
           name = await inputName(
-            `Please choose a name for your deployment (e.g. "hello")`
+            `Please choose a name for your deployment (e.g. "hello")`,
+            new Set(deployments.map(deployment => deployment.id))
           );
         }
         if (!options.desired_count) {

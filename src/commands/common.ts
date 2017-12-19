@@ -20,7 +20,10 @@ export function checkedEnvironmentAction(f: (...args: any[]) => Promise<any>) {
   };
 }
 
-export async function inputName(message: string): Promise<string> {
+export async function inputName(
+  message: string,
+  alreadyUsed: Set<string> = new Set()
+): Promise<string> {
   let answers = await inquirer.prompt([
     {
       type: "input",
@@ -32,6 +35,9 @@ export async function inputName(message: string): Promise<string> {
         }
         if (input.length > MAX_NAME_LENGTH) {
           return `Please enter a shorter name (max ${MAX_NAME_LENGTH} characters).`;
+        }
+        if (alreadyUsed.has(input)) {
+          return `The name ${input} is already used.`;
         }
         return true;
       }
