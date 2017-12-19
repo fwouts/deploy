@@ -79,6 +79,11 @@ program
         }
       }
       if (deploymentsPerCluster["orphaned"]) {
+        console.logInfo(`\n-------------------\n`);
+        console.logInfo(`Orphaned deployments:`);
+        for (let deployment of deploymentsPerCluster["orphaned"]) {
+          console.logInfo(`- ${deployment.id}: http://${deployment.dns}`);
+        }
       }
     })
   );
