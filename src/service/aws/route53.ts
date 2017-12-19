@@ -6,7 +6,7 @@ export async function switchRoute53(
   region: string,
   deploymentId: string,
   domain: string,
-  subdomain: string
+  subdomain: string | "@"
 ): Promise<void> {
   let route53 = new Route53();
   let hostedZonesList = await route53
@@ -44,7 +44,7 @@ export async function switchRoute53(
           {
             Action: "UPSERT",
             ResourceRecordSet: {
-              Name: subdomain + "." + domain + ".",
+              Name: (subdomain === "@" ? "" : subdomain + ".") + domain + ".",
               Type: "A",
               AliasTarget: {
                 DNSName: "dualstack." + loadBalancer.DNSName,
