@@ -30,6 +30,8 @@ export async function deploy(
   deploymentSpec: deployModel.DeploymentSpec,
   deploymentId: string
 ): Promise<DeployResult> {
+  // TODO: MOVE.
+  let launchType: "EC2" | "FARGATE" = "FARGATE";
   let deploymentTags = [
     tags.SHARED_TAG,
     tags.clusterNameTag(deploymentSpec.cluster.name),
@@ -153,7 +155,8 @@ export async function deploy(
       dockerImageExposedPort,
       deploymentSpec.container.memory,
       deploymentSpec.container.cpuUnits,
-      deploymentSpec.environment
+      deploymentSpec.environment,
+      launchType
     );
     console.logInfo(
       `✔ Task definition created in family ${taskDefinition.family}.`
@@ -194,7 +197,9 @@ export async function deploy(
       taskDefinition.arn,
       targetGroup.arn,
       deploymentSpec.desiredCount,
-      dockerImageExposedPort
+      dockerImageExposedPort,
+      vpc.subnetIds,
+      launchType
     );
     console.logInfo(`✔ Created service ${names.service}.`);
     serviceCreated = true;

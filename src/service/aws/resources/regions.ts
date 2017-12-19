@@ -55,6 +55,9 @@ export const ECS_REGIONS = [
   }
 ];
 
+// See https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/.
+export const FARGATE_REGIONS = new Set(["us-east-1"]);
+
 export function getRegionLabel(regionId: string) {
   for (let region of ECS_REGIONS) {
     if (region.id === regionId) {

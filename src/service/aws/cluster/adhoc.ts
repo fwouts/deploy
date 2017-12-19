@@ -34,53 +34,59 @@ export async function createCluster(
     );
     console.logInfo(`✔ Created empty ECS cluster ${clusterSpec.name}.`);
 
-    // Get the default VPC. Create it if necessary.
-    console.logInfo(`Looking up default VPC and subnets...`);
-    let vpc = await vpcs.getDefaultVpcAndSubnets(clusterSpec.region);
-    console.logInfo(`✔ Using default VPC with ID ${vpc.id}.`);
+    if (clusterSpec.config.type === "autoscaling") {
+      // Get the default VPC. Create it if necessary.
+      console.logInfo(`Looking up default VPC and subnets...`);
+      let vpc = await vpcs.getDefaultVpcAndSubnets(clusterSpec.region);
+      console.logInfo(`✔ Using default VPC with ID ${vpc.id}.`);
 
-    // Get default security group.
-    console.logInfo(`Getting default security group...`);
-    let defaultSecurityGroupId = await securityGroups.getDefaultSecurityGroupId(
-      clusterSpec.region,
-      vpc.id
-    );
-    console.logInfo(
-      `✔ Using default security group with ID ${defaultSecurityGroupId}.`
-    );
+      // Get default security group.
+      console.logInfo(`Getting default security group...`);
+      let defaultSecurityGroupId = await securityGroups.getDefaultSecurityGroupId(
+        clusterSpec.region,
+        vpc.id
+      );
+      console.logInfo(
+        `✔ Using default security group with ID ${defaultSecurityGroupId}.`
+      );
 
-    console.logInfo(
-      `Creating auto scaling launch configuration ${
-        names.launchConfiguration
-      }...`
-    );
-    await autoScalingLaunchConfigs.createAutoScalingLaunchConfiguration(
-      clusterSpec.region,
-      names.launchConfiguration,
-      clusterSpec.name,
-      clusterSpec.ec2InstanceType,
-      defaultSecurityGroupId
-    );
-    launchConfigurationCreated = true;
-    console.logInfo(
-      `✔ Created auto scaling launch configuration ${
-        names.launchConfiguration
-      }.`
-    );
+      console.logInfo(
+        `Creating auto scaling launch configuration ${
+          names.launchConfiguration
+        }...`
+      );
+      await autoScalingLaunchConfigs.createAutoScalingLaunchConfiguration(
+        clusterSpec.region,
+        names.launchConfiguration,
+        clusterSpec.name,
+        clusterSpec.config.ec2InstanceType,
+        defaultSecurityGroupId
+      );
+      launchConfigurationCreated = true;
+      console.logInfo(
+        `✔ Created auto scaling launch configuration ${
+          names.launchConfiguration
+        }.`
+      );
 
-    console.logInfo(`Creating auto scaling group ${names.autoScalingGroup}...`);
-    await autoScalingGroups.createAutoScalingGroup(
-      clusterSpec.region,
-      names.autoScalingGroup,
-      names.launchConfiguration,
-      names.instance,
-      clusterSpec.ec2InstanceCount,
-      clusterSpec.ec2InstanceCount,
-      vpc.subnetIds,
-      clusterTags
-    );
-    autoScalingGroupCreated = true;
-    console.logInfo(`✔ Created auto scaling group ${names.autoScalingGroup}.`);
+      console.logInfo(
+        `Creating auto scaling group ${names.autoScalingGroup}...`
+      );
+      await autoScalingGroups.createAutoScalingGroup(
+        clusterSpec.region,
+        names.autoScalingGroup,
+        names.launchConfiguration,
+        names.instance,
+        clusterSpec.config.ec2InstanceCount,
+        clusterSpec.config.ec2InstanceCount,
+        vpc.subnetIds,
+        clusterTags
+      );
+      autoScalingGroupCreated = true;
+      console.logInfo(
+        `✔ Created auto scaling group ${names.autoScalingGroup}.`
+      );
+    }
 
     console.logSuccess(`Cluster ${clusterSpec.name} created successfully.`);
     return {

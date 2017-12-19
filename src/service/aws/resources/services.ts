@@ -14,7 +14,9 @@ export async function createService(
   taskDefinitionArn: string,
   targetGroupArn: string,
   desiredCount: number,
-  containerPort: number
+  containerPort: number,
+  subnetIds: string[],
+  launchType: "EC2" | "FARGATE"
 ): Promise<Service> {
   let ecs = new ECS({
     region: region
@@ -31,7 +33,14 @@ export async function createService(
           containerName: containerName,
           containerPort: containerPort
         }
-      ]
+      ],
+      launchType: launchType,
+      networkConfiguration: {
+        awsvpcConfiguration: {
+          subnets: subnetIds,
+          assignPublicIp: "DISABLED"
+        }
+      }
     })
     .promise();
   if (!serviceCreation.service) {

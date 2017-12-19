@@ -1,8 +1,17 @@
 export interface ClusterSpec {
   name: string;
   region: string;
+  config: AutoScalingSpec | FargateSpec;
+}
+
+export interface AutoScalingSpec {
+  type: "autoscaling";
   ec2InstanceType: string;
   ec2InstanceCount: number;
+}
+
+export interface FargateSpec {
+  type: "fargate";
 }
 
 export interface DeploymentSpec {

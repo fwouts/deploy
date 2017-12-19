@@ -14,6 +14,10 @@ program
     "Optional. The region in which to set up the cluster. Prompted if not specified."
   )
   .option(
+    "-f, --fargate",
+    "Optional. Whether to use Fargate instead of starting up EC2 instances. Only available in specific regions."
+  )
+  .option(
     "-t, --instance_type <instance-type>",
     "Optional. The type of instance to start. Default: t2.micro."
   )
@@ -28,6 +32,7 @@ program
         name: string | undefined,
         options: {
           region?: string;
+          fargate?: boolean;
           instance_type?: string;
           instance_count?: number;
         }
@@ -54,21 +59,66 @@ program
             throw new Error();
           }
         }
-        if (!options.instance_type) {
-          options.instance_type = await inputInstanceType(options.region);
+        if (
+          !options.instance_type &&
+          !options.instance_count &&
+          options.fargate === undefined &&
+          regions.FARGATE_REGIONS.has(options.region)
+        ) {
+          // Fargate is available in this region!
+          let answers = await inquirer.prompt([
+            {
+              type: "confirm",
+              name: "confirm",
+              message: `Fargate is available in this region. This means you don't need to start EC2 instances. Use Fargate?`
+            }
+          ]);
+          if (answers["confirm"]) {
+            options.fargate = true;
+          }
         }
-        if (!options.instance_count) {
-          options.instance_count = await inputInteger(
-            `How many EC2 instances should be created?`,
-            1
-          );
+        if (options.fargate && !regions.FARGATE_REGIONS.has(options.region)) {
+          let answers = await inquirer.prompt([
+            {
+              type: "confirm",
+              name: "confirm",
+              message: `As far as we know, Fargate is not available in ${
+                options.region
+              }. Are you sure you want to use Fargate?`
+            }
+          ]);
+          if (!answers["confirm"]) {
+            options.fargate = false;
+          }
         }
-        await awsCluster.createCluster({
-          name: name,
-          region: options.region,
-          ec2InstanceType: options.instance_type,
-          ec2InstanceCount: options.instance_count
-        });
+        if (!options.fargate) {
+          if (!options.instance_type) {
+            options.instance_type = await inputInstanceType(options.region);
+          }
+          if (!options.instance_count) {
+            options.instance_count = await inputInteger(
+              `How many EC2 instances should be created?`,
+              1
+            );
+          }
+          await awsCluster.createCluster({
+            name: name,
+            region: options.region,
+            config: {
+              type: "autoscaling",
+              ec2InstanceType: options.instance_type,
+              ec2InstanceCount: options.instance_count
+            }
+          });
+        } else {
+          await awsCluster.createCluster({
+            name: name,
+            region: options.region,
+            config: {
+              type: "fargate"
+            }
+          });
+        }
       }
     )
   );

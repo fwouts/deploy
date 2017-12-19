@@ -1,4 +1,5 @@
 import * as ECS from "aws-sdk/clients/ecs";
+import * as STS from "aws-sdk/clients/sts";
 
 export interface TaskDefinition {
   arn: string;
@@ -14,11 +15,16 @@ export async function createTaskDefinition(
   containerPort: number,
   containerMemory: number,
   containerCpuUnits: number | undefined,
-  environment: { [key: string]: string }
+  environment: { [key: string]: string },
+  launchType: "EC2" | "FARGATE"
 ): Promise<TaskDefinition> {
+  let sts = new STS({
+    region: region
+  });
   let ecs = new ECS({
     region: region
   });
+  let callerIdentity = await sts.getCallerIdentity().promise();
   let environmentVariables: ECS.EnvironmentVariables = [];
   for (let [key, value] of Object.entries(environment)) {
     environmentVariables.push({
@@ -37,13 +43,21 @@ export async function createTaskDefinition(
           cpu: containerCpuUnits,
           portMappings: [
             {
-              hostPort: 0,
+              hostPort: launchType === "FARGATE" ? containerPort : 0,
               containerPort: containerPort
             }
           ],
           environment: environmentVariables
         }
-      ]
+      ],
+      requiresCompatibilities: launchType === "FARGATE" ? ["FARGATE"] : [],
+      memory: containerMemory.toString(10),
+      cpu: containerCpuUnits ? containerCpuUnits.toString(10) : undefined,
+      networkMode: launchType === "FARGATE" ? "awsvpc" : "bridge",
+      executionRoleArn:
+        launchType === "FARGATE"
+          ? `arn:aws:iam::${callerIdentity.Account}:role/ecsTaskExecutionRole`
+          : undefined
     })
     .promise();
   if (

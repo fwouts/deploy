@@ -21,7 +21,8 @@ export async function createTargetGroup(
       Name: name,
       Protocol: "HTTP",
       Port: allocatedLoadBalancerPort,
-      VpcId: vpcId
+      VpcId: vpcId,
+      TargetType: "ip"
     })
     .promise();
   if (
