@@ -23,8 +23,8 @@ export async function createDockerImage(dockerfilePath: string, name: string) {
       t: name
     }
   );
-  stream.pipe(process.stdout);
   await new Promise((resolve, reject) => {
+    stream.resume();
     stream.on("error", e => {
       reject(e);
     });
