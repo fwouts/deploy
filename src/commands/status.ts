@@ -1,3 +1,4 @@
+import * as analytics from "../analytics";
 import * as awsLoader from "../service/aws/loader";
 import * as console from "../service/console";
 import * as program from "commander";
@@ -10,10 +11,10 @@ program
   .description("Outputs the status of clusters and their deployments.")
   .action(
     checkedEnvironmentAction(async () => {
-      let [clusters, deployments] = await Promise.all([
-        awsLoader.loadClusters(),
-        awsLoader.loadDeployments()
-      ]);
+      analytics.trackEvent(analytics.events.statusCommand());
+      let [clusters, deployments] = await analytics.trackCall("Status", () =>
+        Promise.all([awsLoader.loadClusters(), awsLoader.loadDeployments()])
+      );
       let clustersPerId: { [regionAndName: string]: awsLoader.Cluster } = {};
       for (let cluster of clusters) {
         clustersPerId[cluster.region + ":" + cluster.name] = cluster;

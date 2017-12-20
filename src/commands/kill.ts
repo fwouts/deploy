@@ -1,3 +1,4 @@
+import * as analytics from "../analytics";
 import * as awsDeployment from "../service/aws/deployment/adhoc";
 import * as awsLoader from "../service/aws/loader";
 import * as inquirer from "inquirer";
@@ -16,11 +17,12 @@ program
   .action(
     checkedEnvironmentAction(
       async (name: string | undefined, options: { region: string }) => {
+        analytics.trackEvent(analytics.events.destroyDeploymentCommand());
         let deployments = await awsLoader.loadDeployments();
         if (deployments.length === 0) {
           throw new Error(`No deployments are available.`);
         }
-        let foundDeployment = null;
+        let foundDeployment: awsLoader.Deployment | null = null;
         if (!name) {
           let answers = await inquirer.prompt([
             {
@@ -34,13 +36,14 @@ program
               })
             }
           ]);
-          foundDeployment = deployments.find(deployment => {
-            return (
-              `${deployment.id} - ${regions.getRegionLabel(
-                deployment.region
-              )}` === answers["deployment"]
-            );
-          });
+          foundDeployment =
+            deployments.find(deployment => {
+              return (
+                `${deployment.id} - ${regions.getRegionLabel(
+                  deployment.region
+                )}` === answers["deployment"]
+              );
+            }) || null;
         } else {
           for (let deployment of deployments) {
             if (options.region && deployment.region !== options.region) {
@@ -68,10 +71,12 @@ program
         if (!foundDeployment) {
           throw new Error(`No deployment ${name} could be found.`);
         }
-        await awsDeployment.destroy(
-          foundDeployment.region,
-          foundDeployment.clusterName,
-          foundDeployment.id
+        await analytics.trackCall("Destroy Deployment", () =>
+          awsDeployment.destroy(
+            foundDeployment!.region,
+            foundDeployment!.clusterName,
+            foundDeployment!.id
+          )
         );
       }
     )

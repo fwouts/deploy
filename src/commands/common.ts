@@ -1,3 +1,4 @@
+import * as analytics from "../analytics";
 import * as awsAuth from "../service/aws/auth";
 import * as console from "../service/console";
 import * as docker from "../service/docker";
@@ -9,7 +10,11 @@ export function checkedEnvironmentAction(f: (...args: any[]) => Promise<any>) {
   async function checked(...args: any[]) {
     await awsAuth.authenticate();
     await docker.checkEnvironment();
-    await f(...args);
+    try {
+      await f(...args);
+    } finally {
+      analytics.terminate().catch(console.logError);
+    }
   }
   return (...args: any[]) => {
     checked(...args).catch(error => {

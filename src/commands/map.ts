@@ -1,3 +1,4 @@
+import * as analytics from "../analytics";
 import * as awsLoader from "../service/aws/loader";
 import * as console from "../service/console";
 import * as inquirer from "inquirer";
@@ -27,8 +28,9 @@ program
           region?: string;
         }
       ) => {
+        analytics.trackEvent(analytics.events.mapDNSCommand());
         let deployments = await awsLoader.loadDeployments();
-        let foundDeployment = null;
+        let foundDeployment: awsLoader.Deployment | null = null;
         if (!deploymentId) {
           let answers = await inquirer.prompt([
             {
@@ -42,13 +44,14 @@ program
               })
             }
           ]);
-          foundDeployment = deployments.find(deployment => {
-            return (
-              `${deployment.id} - ${regions.getRegionLabel(
-                deployment.region
-              )}` === answers["deployment"]
-            );
-          });
+          foundDeployment =
+            deployments.find(deployment => {
+              return (
+                `${deployment.id} - ${regions.getRegionLabel(
+                  deployment.region
+                )}` === answers["deployment"]
+              );
+            }) || null;
         } else {
           for (let deployment of deployments) {
             if (options.region && deployment.region !== options.region) {
@@ -102,11 +105,13 @@ program
         if (subdomain.length === 0) {
           subdomain = "@";
         }
-        await route53.map(
-          foundDeployment.region,
-          foundDeployment.id,
-          rootDomain,
-          subdomain
+        await analytics.trackCall("Map DNS", () =>
+          route53.map(
+            foundDeployment!.region,
+            foundDeployment!.id,
+            rootDomain,
+            subdomain
+          )
         );
         console.logSuccess(
           `Deployment ${deploymentId} should soon be accessible at http://${domain}`

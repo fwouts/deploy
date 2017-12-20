@@ -1,3 +1,4 @@
+import * as analytics from "../analytics";
 import * as awsCluster from "../service/aws/cluster/adhoc";
 import * as inquirer from "inquirer";
 import * as instanceTypes from "../service/aws/resources/instancetypes";
@@ -32,6 +33,7 @@ program
           instance_count?: number;
         }
       ) => {
+        analytics.trackEvent(analytics.events.createClusterCommand());
         if (!name) {
           name = await inputName(
             `Please choose a name for your cluster (e.g. "staging")`,
@@ -63,12 +65,14 @@ program
             1
           );
         }
-        await awsCluster.createCluster({
-          name: name,
-          region: options.region,
-          ec2InstanceType: options.instance_type,
-          ec2InstanceCount: options.instance_count
-        });
+        await analytics.trackCall("Create Cluster", () =>
+          awsCluster.createCluster({
+            name: name!,
+            region: options.region!,
+            ec2InstanceType: options.instance_type!,
+            ec2InstanceCount: options.instance_count!
+          })
+        );
       }
     )
   );

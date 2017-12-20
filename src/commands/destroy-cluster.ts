@@ -1,3 +1,4 @@
+import * as analytics from "../analytics";
 import * as awsCluster from "../service/aws/cluster/adhoc";
 import * as awsLoader from "../service/aws/loader";
 import * as inquirer from "inquirer";
@@ -15,11 +16,12 @@ program
   .action(
     checkedEnvironmentAction(
       async (name: string | undefined, options: { region?: string }) => {
+        analytics.trackEvent(analytics.events.destroyClusterCommand());
         let clusters = await awsLoader.loadClusters();
         if (clusters.length === 0) {
           throw new Error(`No clusters are available.`);
         }
-        let foundCluster = null;
+        let foundCluster: awsLoader.Cluster | null = null;
         if (!name) {
           let answers = await inquirer.prompt([
             {
@@ -31,9 +33,12 @@ program
               })
             }
           ]);
-          foundCluster = clusters.find(cluster => {
-            return `${cluster.name} (${cluster.region})` === answers["cluster"];
-          });
+          foundCluster =
+            clusters.find(cluster => {
+              return (
+                `${cluster.name} (${cluster.region})` === answers["cluster"]
+              );
+            }) || null;
         } else {
           for (let cluster of clusters) {
             if (options.region && cluster.region !== options.region) {
@@ -63,7 +68,9 @@ program
         if (!foundCluster) {
           throw new Error(`No cluster ${name} could be found.`);
         }
-        await awsCluster.destroy(foundCluster.region, foundCluster.name);
+        await analytics.trackCall("Destroy Cluster", () =>
+          awsCluster.destroy(foundCluster!.region, foundCluster!.name)
+        );
       }
     )
   );

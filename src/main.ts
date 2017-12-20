@@ -11,11 +11,12 @@ import "./commands/map";
 import "./commands/unmap";
 import "./commands/status";
 
+import * as analytics from "./analytics";
 import * as console from "./service/console";
 import * as program from "commander";
 
 // TODO: Make sure this stays in sync with package.json.
-const VERSION = "0.0.4";
+export const VERSION = "0.0.4";
 
 program.version(VERSION);
 
@@ -24,8 +25,16 @@ program.command("*").action(cmd => {
   process.exit(1);
 });
 
-program.parse(process.argv);
-
 if (!process.argv.slice(2).length) {
   program.outputHelp();
+} else {
+  analytics
+    .initializeTracker()
+    .catch(e => {
+      console.logError(e);
+      process.exit(1);
+    })
+    .then(() => {
+      program.parse(process.argv);
+    });
 }

@@ -1,8 +1,7 @@
-import * as awsLoader from "../service/aws/loader";
+import * as analytics from "../analytics";
 import * as console from "../service/console";
 import * as inquirer from "inquirer";
 import * as program from "commander";
-import * as regions from "../service/aws/resources/regions";
 import * as route53 from "../service/aws/route53";
 
 import { checkedEnvironmentAction } from "./common";
@@ -15,6 +14,7 @@ program
   .action(
     checkedEnvironmentAction(
       async (domain: string | undefined, options: {}) => {
+        analytics.trackEvent(analytics.events.unmapDNSCommand());
         if (!domain) {
           let answers = await inquirer.prompt([
             {
@@ -41,7 +41,9 @@ program
         if (subdomain.length === 0) {
           subdomain = "@";
         }
-        await route53.unmap(rootDomain, subdomain);
+        await analytics.trackCall("Unmap DNS", () =>
+          route53.unmap(rootDomain, subdomain)
+        );
         console.logSuccess(
           `http://${domain} will soon no longer be available.`
         );

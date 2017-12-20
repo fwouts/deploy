@@ -1,3 +1,4 @@
+import * as analytics from "../analytics";
 import * as awsDeployment from "../service/aws/deployment/adhoc";
 import * as awsLoader from "../service/aws/loader";
 import * as console from "../service/console";
@@ -65,6 +66,7 @@ program
           env: { [key: string]: string };
         }
       ) => {
+        analytics.trackEvent(analytics.events.createDeploymentCommand());
         if (!dockerfilePath) {
           // Check if there is a Dockerfile in the current path.
           // If not, fail and ask for one to be provided.
@@ -82,7 +84,7 @@ program
             `No clusters are available. Please create one first.`
           );
         }
-        let foundCluster = null;
+        let foundCluster: awsLoader.Cluster | null = null;
         if (!options.cluster) {
           // TODO: Also offer to create a new cluster.
           let answers = await inquirer.prompt([
@@ -95,9 +97,12 @@ program
               })
             }
           ]);
-          foundCluster = clusters.find(cluster => {
-            return `${cluster.name} (${cluster.region})` === answers["cluster"];
-          });
+          foundCluster =
+            clusters.find(cluster => {
+              return (
+                `${cluster.name} (${cluster.region})` === answers["cluster"]
+              );
+            }) || null;
         } else {
           for (let cluster of clusters) {
             if (options.region && cluster.region !== options.region) {
@@ -172,22 +177,24 @@ program
             512
           );
         }
-        await awsDeployment.deploy(
-          {
-            name: name,
-            cluster: foundCluster,
-            container: {
-              imageSource: {
-                type: "local",
-                dockerfilePath: dockerfilePath
+        await analytics.trackCall("Create Deployment", () =>
+          awsDeployment.deploy(
+            {
+              name: name!,
+              cluster: foundCluster!,
+              container: {
+                imageSource: {
+                  type: "local",
+                  dockerfilePath: dockerfilePath!
+                },
+                memory: options.memory,
+                cpuUnits: options.cpu
               },
-              memory: options.memory,
-              cpuUnits: options.cpu
+              desiredCount: options.desired_count,
+              environment: options.env
             },
-            desiredCount: options.desired_count,
-            environment: options.env
-          },
-          name
+            name!
+          )
         );
       }
     )
