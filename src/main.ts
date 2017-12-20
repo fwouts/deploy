@@ -14,9 +14,10 @@ import "./commands/status";
 import * as analytics from "./analytics";
 import * as console from "./service/console";
 import * as program from "commander";
+import * as updateCheck from "./update-check";
 
 // TODO: Make sure this stays in sync with package.json.
-export const VERSION = "0.0.4";
+export const VERSION = "0.0.6";
 
 program.version(VERSION);
 
@@ -34,6 +35,7 @@ if (!process.argv.slice(2).length) {
       console.logError(e);
       process.exit(1);
     })
+    .then(updateCheck.checkVersionIfNecessary)
     .then(() => {
       program.parse(process.argv);
     });

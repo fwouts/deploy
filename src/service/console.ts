@@ -6,6 +6,10 @@ export function logInfo(message: string) {
   console.log(message);
 }
 
+export function logWarning(message: string) {
+  console.log(chalk.yellow(message));
+}
+
 export function logError(error: any) {
   if (error instanceof AlreadyLoggedError) {
     return;

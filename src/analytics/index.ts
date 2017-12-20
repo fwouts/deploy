@@ -3,20 +3,19 @@ import * as eventsModule from "./events";
 import * as fs from "fs";
 import * as inquirer from "inquirer";
 import * as mkdirp from "mkdirp";
-import * as os from "os";
 import * as path from "path";
 import * as uuid from "uuid";
 
 import { Event, Tracker } from "./tracker";
 
 import { NoopTracker } from "./noop-tracker";
+import { PREFERENCES_DIR_PATH } from "../preferences";
 import { RealTracker } from "./real-tracker";
 
 export const events = eventsModule;
 
-const DEPLOY_PREFERENCES_DIR_PATH = path.join(os.homedir(), ".deploy");
 const TRACKING_PREFERENCES_PATH = path.join(
-  DEPLOY_PREFERENCES_DIR_PATH,
+  PREFERENCES_DIR_PATH,
   "tracking.json"
 );
 
