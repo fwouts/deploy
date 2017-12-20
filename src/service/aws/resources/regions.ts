@@ -30,6 +30,10 @@ export const ECS_REGIONS = [
     label: "EU (Frankfurt)"
   },
   {
+    id: "eu-west-3",
+    label: "EU (Paris)"
+  },
+  {
     id: "eu-west-2",
     label: "EU (London)"
   },
