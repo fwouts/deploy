@@ -15,11 +15,13 @@ Unlike [Now](https://zeit.co/now) or [Heroku](https://devcenter.heroku.com/artic
 Before you can start a deployment, you need to create a cluster.
 
 ```shell
-# Create a cluster with one t2.micro EC2 instance in Australia.
-deploy create-cluster gday --region ap-southeast-2
-
-# Create a cluster with five t2.large EC2 instances in Oregon.
-deploy create-cluster prod -r us-west-2 -t t2.large -n 5
+> deploy create-cluster
+? Please choose a name for your cluster: staging
+? Which region do you want to create your cluster in? ap-southeast-2 - Asia Pacific (Sydney)
+? What type of EC2 instance should be started? T2 Micro (1 vCPU, 1GB RAM) - estimated USD$10.86/month/instance
+? How many EC2 instances should be created? 1
+...
+Cluster staging created successfully.
 ```
 
 ## Starting a deployment
@@ -27,11 +29,13 @@ deploy create-cluster prod -r us-west-2 -t t2.large -n 5
 Deploying your local code is a single line:
 
 ```shell
-# Deploy your local codebase to AWS.
-deploy create-deployment myserver ./Dockerfile --cluster gday
-
-# Deploy multiple containers.
-deploy create-deployment server-prod ./Dockerfile -c gday -n 10
+> deploy push
+? Which cluster do you want to deploy in? staging (ap-southeast-2)
+? Please choose a name for your deployment: example
+? How many Docker containers should be deployed? 1
+? How much memory should be allocated to each container (in MB)? 512
+...
+Deployed successfully at http://example-loadbalancer-12345.ap-southeast-2.elb.amazonaws.com (live in a few minutes).
 ```
 
 ## Turning down a deployment
@@ -39,7 +43,10 @@ deploy create-deployment server-prod ./Dockerfile -c gday -n 10
 It's even easier than deploying it in the first place:
 
 ```shell
-deploy destroy-deployment myserver
+> deploy kill
+? Which deployment do you want to destroy? example - Asia Pacific (Sydney)
+...
+Destroyed deployment example successfully.
 ```
 
 ## Destroying a cluster
@@ -47,7 +54,33 @@ deploy destroy-deployment myserver
 If you don't use your clusters, you should probably turn them down:
 
 ```shell
-deploy destroy-cluster mycluster --region ap-southeast-2
+> deploy destroy-cluster
+? Which cluster do you want to destroy? staging (ap-southeast-2)
+...
+Cluster staging destroyed successfully.
+```
+
+## Status
+
+Use the status command to get a quick overview of your clusters and deployments.
+
+```
+> deploy status
+
+-------------------
+
+Cluster 'staging' in Asia Pacific (Sydney):
+- EC2 instance type: t2.micro
+- Desired instances: 5
+- Running instances: 5
+
+Deployments in cluster 'staging':
+- example1:
+    URL: http://example1-loadbalancer-12345.ap-southeast-2.elb.amazonaws.com
+    Running tasks: 1 (1 desired, 0 pending)
+- example2:
+    URL: http://example2-loadbalancer-56789.ap-southeast-2.elb.amazonaws.com
+    Running tasks: 1 (1 desired, 0 pending)
 ```
 
 ## FAQ
