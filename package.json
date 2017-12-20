@@ -1,6 +1,6 @@
 {
   "name": "@zenclabs/deploy",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "author": "Francois Wouts <f@zenc.io>",
   "license": "MIT",
   "description": "Deploy is a command-line tool that aims to make Docker deployments as simple as possible.",

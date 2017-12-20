@@ -17,7 +17,7 @@ import * as program from "commander";
 import * as updateCheck from "./update-check";
 
 // TODO: Make sure this stays in sync with package.json.
-export const VERSION = "0.0.6";
+export const VERSION = "0.0.7";
 
 program.version(VERSION);
 
