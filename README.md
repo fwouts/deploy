@@ -4,6 +4,10 @@ Deploy is a command-line tool that aims to make Docker deployments as simple as 
 
 Unlike [Now](https://zeit.co/now) or [Heroku](https://devcenter.heroku.com/articles/heroku-cli), Deploy deploys directly to AWS. There are no intermediaries involved.
 
+## Demo
+
+[![asciicast](https://asciinema.org/a/153571.png)](https://asciinema.org/a/153571)
+
 ## Installing
 
 1. Make sure you have [NPM](https://www.npmjs.com/get-npm) installed
