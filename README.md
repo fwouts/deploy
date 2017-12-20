@@ -60,6 +60,22 @@ If you don't use your clusters, you should probably turn them down:
 Cluster staging destroyed successfully.
 ```
 
+## Mapping a deployment to your subdomain
+
+```shell
+> deploy map mydeployment demo.yourdomain.com
+Route 53 record set updated.
+Deployment mydeployment should soon be accessible at http://demo.yourdomain.com
+```
+
+## Unmapping your subdomain
+
+```shell
+> deploy unmap demo.yourdomain.com
+Route 53 record set updated.
+http://demo.yourdomain.com will soon no longer be available.
+```
+
 ## Status
 
 Use the status command to get a quick overview of your clusters and deployments.
