@@ -1,5 +1,6 @@
 import * as console from "./service/console";
 import * as fs from "fs";
+import * as mkdirp from "mkdirp";
 import * as path from "path";
 
 import { PREFERENCES_DIR_PATH } from "./preferences";
@@ -37,6 +38,7 @@ export async function checkVersionIfNecessary(): Promise<void> {
         timestampMillis: Date.now(),
         latestVersion: latestVersion
       };
+      mkdirp.sync(PREFERENCES_DIR_PATH);
       fs.writeFileSync(
         UPDATE_CHECK_PREFERENCES_PATH,
         JSON.stringify(lastUpdateCheck, null, 2),

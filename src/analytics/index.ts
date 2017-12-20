@@ -86,7 +86,7 @@ async function getTracker(): Promise<Tracker> {
         trackingAllowed: false
       };
     }
-    mkdirp.sync(DEPLOY_PREFERENCES_DIR_PATH);
+    mkdirp.sync(PREFERENCES_DIR_PATH);
     fs.writeFileSync(
       TRACKING_PREFERENCES_PATH,
       JSON.stringify(trackingPreferences, null, 2),
