@@ -6,7 +6,7 @@ Unlike [Now](https://zeit.co/now) or [Heroku](https://devcenter.heroku.com/artic
 
 ## Demo
 
-[![asciicast](demo.gif)](https://asciinema.org/a/153571?speed=1.7&rows=30)
+[![Watch a demo here](demo.gif)](https://asciinema.org/a/153571?speed=1.7&rows=30)
 
 ## Installing
 

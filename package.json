@@ -8,8 +8,12 @@
     "AWS",
     "Docker"
   ],
-  "homepage": "https://github.com/zenclabs/deploy-cli",
-  "bugs": "https://github.com/zenclabs/deploy-cli/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zenclabs/deploy.git"
+  },
+  "homepage": "https://github.com/zenclabs/deploy",
+  "bugs": "https://github.com/zenclabs/deploy/issues",
   "bin": {
     "deploy": "./dist/main.js"
   },
