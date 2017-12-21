@@ -4,7 +4,7 @@ import * as console from "../service/console";
 import * as docker from "../service/docker";
 import * as inquirer from "inquirer";
 
-const MAX_NAME_LENGTH = 8;
+export const MAX_NAME_LENGTH = 18;
 
 export function checkedEnvironmentAction(f: (...args: any[]) => Promise<any>) {
   async function checked(...args: any[]) {

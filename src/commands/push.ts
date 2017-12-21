@@ -9,7 +9,12 @@ import * as path from "path";
 import * as program from "commander";
 import * as regions from "../service/aws/resources/regions";
 
-import { checkedEnvironmentAction, inputInteger, inputName } from "./common";
+import {
+  MAX_NAME_LENGTH,
+  checkedEnvironmentAction,
+  inputInteger,
+  inputName
+} from "./common";
 
 program
   .command("push [path-to-Dockerfile] [name]")
@@ -148,7 +153,8 @@ program
         );
         let shortDirectoryName = path
           .basename(path.dirname(path.resolve(dockerfilePath)))
-          .substr(0, 7);
+          .replace(/[^a-z0-9]/g, "")
+          .substr(0, MAX_NAME_LENGTH);
         let suffix = 1;
         while (
           existingDeploymentNames.has(
