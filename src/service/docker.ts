@@ -107,7 +107,7 @@ export async function getDocker() {
   } catch (e) {
     if (e.code === "ENOENT") {
       throw new Error(
-        "Docker does not seem to be installed locally. Please visit https://docs.docker.com/engine/installation for more information."
+        "Docker engine does not seem to be running locally. Please visit https://docs.docker.com/engine/installation for more information."
       );
     } else {
       throw e;
