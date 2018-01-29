@@ -3,12 +3,14 @@ import * as awsAuth from "../service/aws/auth";
 import * as console from "../service/console";
 import * as docker from "../service/docker";
 import * as inquirer from "inquirer";
+import * as program from "commander";
 
 export const MAX_NAME_LENGTH = 18;
 
 export function checkedEnvironmentAction(f: (...args: any[]) => Promise<any>) {
   async function checked(...args: any[]) {
-    await awsAuth.authenticate();
+    let awsProfileName = program.opts()["profile"] || "default";
+    await awsAuth.authenticate(awsProfileName);
     await docker.checkEnvironment();
     try {
       await f(...args);

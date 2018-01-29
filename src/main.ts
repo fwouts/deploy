@@ -21,6 +21,11 @@ export const VERSION = "0.0.10";
 
 program.version(VERSION);
 
+program.option(
+  "-p, --profile <profile-name>",
+  "Optional. The AWS profile to use from ~/.aws/credentials."
+);
+
 program.command("*").action(cmd => {
   console.logError(`Unknown command: ${cmd}.`);
   process.exit(1);
