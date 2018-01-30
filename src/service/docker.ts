@@ -42,7 +42,7 @@ export async function getExposedPort(tag: string): Promise<number> {
   let imageInspectInfo = await image.inspect();
   let exposedPort = null;
   for (let portAndProtocol of Object.keys(
-    imageInspectInfo.Config.ExposedPorts
+    imageInspectInfo.Config.ExposedPorts || {}
   )) {
     let [port, protocol] = portAndProtocol.split("/");
     if (protocol !== "tcp") {
