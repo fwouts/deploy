@@ -1,5 +1,7 @@
 import * as ECS from "aws-sdk/clients/ecs";
 
+import { DocumentedError } from "../../errors";
+
 export interface TaskDefinition {
   arn: string;
   family: string;
@@ -51,7 +53,7 @@ export async function createTaskDefinition(
     !taskDefinition.taskDefinition.taskDefinitionArn ||
     !taskDefinition.taskDefinition.family
   ) {
-    throw new Error("Task definition could not be created.");
+    throw new DocumentedError("Task definition could not be created.");
   }
   return {
     arn: taskDefinition.taskDefinition.taskDefinitionArn,

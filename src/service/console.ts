@@ -1,5 +1,6 @@
 import * as util from "util";
 
+import { DocumentedError } from "./errors";
 import chalk from "chalk";
 
 export function logInfo(message: string) {
@@ -27,10 +28,14 @@ export function logError(error: any) {
     message = util.inspect(error);
   }
   console.log(chalk.red(message));
+  if (!(error instanceof DocumentedError)) {
+    // This is not an error that we produced ourselves, so show a stack trace.
+    console.log(error.stack);
+  }
 }
 
 export function logSuccess(message: string) {
   console.log(chalk.green(message));
 }
 
-export class AlreadyLoggedError extends Error {}
+export class AlreadyLoggedError extends DocumentedError {}

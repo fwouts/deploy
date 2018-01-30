@@ -1,5 +1,7 @@
 import * as ECR from "aws-sdk/clients/ecr";
 
+import { DocumentedError } from "../../errors";
+
 const atob = require("atob");
 
 export interface AuthConfig {
@@ -16,11 +18,15 @@ export async function getAuthConfig(region: string): Promise<AuthConfig> {
     !authTokenResponse.authorizationData ||
     authTokenResponse.authorizationData.length == 0
   ) {
-    throw new Error("Missing authorization token in authTokenResponse.");
+    throw new DocumentedError(
+      "Missing authorization token in authTokenResponse."
+    );
   }
   let authorizationData = authTokenResponse.authorizationData[0];
   if (!authorizationData.authorizationToken) {
-    throw new Error("Missing authorization token in authorizationData item.");
+    throw new DocumentedError(
+      "Missing authorization token in authorizationData item."
+    );
   }
   let [username, password] = atob(authorizationData.authorizationToken).split(
     ":"
@@ -56,7 +62,7 @@ export async function getOrCreateRepository(region: string, name: string) {
         !existingRepository.repositoryArn ||
         !existingRepository.repositoryUri
       ) {
-        throw new Error("Repository is missing key properties.");
+        throw new DocumentedError("Repository is missing key properties.");
       }
       return {
         arn: existingRepository.repositoryArn,
@@ -75,7 +81,7 @@ export async function getOrCreateRepository(region: string, name: string) {
     !createdRepositoryResponse.repository.repositoryArn ||
     !createdRepositoryResponse.repository.repositoryUri
   ) {
-    throw new Error("Missing created repository.");
+    throw new DocumentedError("Missing created repository.");
   }
   return {
     arn: createdRepositoryResponse.repository.repositoryArn,

@@ -1,6 +1,8 @@
 import * as ELBv2 from "aws-sdk/clients/elbv2";
 import * as tags from "./tags";
 
+import { DocumentedError } from "../../errors";
+
 const HOURS_IN_A_MONTH = 31 * 24;
 
 // Prices from https://aws.amazon.com/elasticloadbalancing/pricing/
@@ -56,7 +58,7 @@ export async function createLoadBalancer(
     !loadBalancerCreation.LoadBalancers ||
     loadBalancerCreation.LoadBalancers.length !== 1
   ) {
-    throw new Error("Load balancer could not be created.");
+    throw new DocumentedError("Load balancer could not be created.");
   }
   let loadBalancer = loadBalancerCreation.LoadBalancers[0];
   if (
@@ -64,7 +66,7 @@ export async function createLoadBalancer(
     !loadBalancer.LoadBalancerName ||
     !loadBalancer.DNSName
   ) {
-    throw new Error("Load balancer is missing key properties.");
+    throw new DocumentedError("Load balancer is missing key properties.");
   }
   return {
     arn: loadBalancer.LoadBalancerArn,
@@ -100,11 +102,13 @@ export async function createListener(
     })
     .promise();
   if (!listenerCreation.Listeners || listenerCreation.Listeners.length !== 1) {
-    throw new Error("Load balancer listener could not be created.");
+    throw new DocumentedError("Load balancer listener could not be created.");
   }
   let listener = listenerCreation.Listeners[0];
   if (!listener.ListenerArn) {
-    throw new Error("Load balancer listener is missing key properties.");
+    throw new DocumentedError(
+      "Load balancer listener is missing key properties."
+    );
   }
   return {
     arn: listener.ListenerArn

@@ -1,6 +1,8 @@
 import * as ECS from "aws-sdk/clients/ecs";
 import * as loader from "../loader";
 
+import { DocumentedError } from "../../errors";
+
 export interface Cluster {
   name: string;
   arn: string;
@@ -21,14 +23,16 @@ export async function getCluster(
   if (clusters.clusters && clusters.clusters.length === 1) {
     let cluster = clusters.clusters[0];
     if (!cluster.clusterArn || !cluster.clusterName) {
-      throw new Error("Cluster is missing key properties.");
+      throw new DocumentedError("Cluster is missing key properties.");
     }
     return {
       name: cluster.clusterName,
       arn: cluster.clusterArn
     };
   } else {
-    throw new Error("Could not find existing cluster: " + clusterNameOrArn);
+    throw new DocumentedError(
+      "Could not find existing cluster: " + clusterNameOrArn
+    );
   }
 }
 
@@ -47,7 +51,9 @@ export async function createCluster(
     .promise();
   for (let existingCluster of existingClusterDescription.clusters || []) {
     if (existingCluster.status === "ACTIVE") {
-      throw new Error(`A cluster with the name ${name} already exists.`);
+      throw new DocumentedError(
+        `A cluster with the name ${name} already exists.`
+      );
     }
   }
   let clusterCreation = await ecs
@@ -56,13 +62,13 @@ export async function createCluster(
     })
     .promise();
   if (!clusterCreation.cluster) {
-    throw new Error("Cluster could not be created.");
+    throw new DocumentedError("Cluster could not be created.");
   }
   if (
     !clusterCreation.cluster.clusterName ||
     !clusterCreation.cluster.clusterArn
   ) {
-    throw new Error("Cluster is missing key properties.");
+    throw new DocumentedError("Cluster is missing key properties.");
   }
   return clusterCreation.cluster.clusterArn;
 }
@@ -80,11 +86,11 @@ export async function destroyCluster(region: string, clusterArn: string) {
     !clusterDescription.clusters ||
     clusterDescription.clusters.length === 0
   ) {
-    throw new Error("Cluster could not be found.");
+    throw new DocumentedError("Cluster could not be found.");
   }
   let cluster = clusterDescription.clusters[0];
   if (!cluster.clusterName) {
-    throw new Error("Cluster is missing a name.");
+    throw new DocumentedError("Cluster is missing a name.");
   }
   let containerInstanceArns = await loader.loadUntilEnd(async token => {
     let { containerInstanceArns, nextToken } = await ecs

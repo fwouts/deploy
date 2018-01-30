@@ -1,6 +1,8 @@
 import * as AutoScaling from "aws-sdk/clients/autoscaling";
 import * as images from "./images";
 
+import { DocumentedError } from "../../errors";
+
 const btoa = require("btoa");
 
 const ECS_INSTANCE_ROLE_NAME = "ecsInstanceRole";
@@ -40,7 +42,7 @@ echo ECS_CLUSTER=${clusterName} >> /etc/ecs/ecs.config`
       // can't just create the profile for them unless they have granted IAM access,
       // which may be quite rare and we probably shouldn't encourage.
       // Instructions inspired from http://docs.aws.amazon.com/AmazonECS/latest/developerguide/instance_IAM_role.html#procedure_check_instance_role.
-      throw new Error(
+      throw new DocumentedError(
         `You need to create the "ecsInstanceRole" in the IAM console. Please follow these instructions:
 - Open the IAM console at https://console.aws.amazon.com/iam/.
 - In the navigation pane, choose Roles and then choose Create role.

@@ -4,6 +4,8 @@ import * as fs from "fs";
 import * as path from "path";
 import * as tar from "tar-fs";
 
+import { DocumentedError } from "./errors";
+
 export async function checkEnvironment() {
   await getDocker();
 }
@@ -11,11 +13,11 @@ export async function checkEnvironment() {
 export async function createDockerImage(dockerfilePath: string, name: string) {
   let docker = await getDocker();
   if (!dockerfilePath) {
-    throw new Error(`Please select a Dockerfile!`);
+    throw new DocumentedError(`Please select a Dockerfile!`);
   }
   dockerfilePath = path.resolve(dockerfilePath);
   if (!fs.existsSync(dockerfilePath)) {
-    throw new Error(`No such file at path ${dockerfilePath}.`);
+    throw new DocumentedError(`No such file at path ${dockerfilePath}.`);
   }
   let stream: NodeJS.ReadableStream = await docker.buildImage(
     tar.pack(path.dirname(dockerfilePath)),
@@ -47,12 +49,16 @@ export async function getExposedPort(tag: string): Promise<number> {
       continue;
     }
     if (exposedPort !== null) {
-      throw new Error("Docker image should expose exactly one TCP port.");
+      throw new DocumentedError(
+        "Docker image should expose exactly one TCP port."
+      );
     }
     exposedPort = parseInt(port, 10);
   }
   if (exposedPort === null) {
-    throw new Error("Docker image should expose exactly one TCP port.");
+    throw new DocumentedError(
+      "Docker image should expose exactly one TCP port."
+    );
   }
   return exposedPort;
 }
@@ -106,7 +112,7 @@ export async function getDocker() {
     await docker.info();
   } catch (e) {
     if (e.code === "ENOENT") {
-      throw new Error(
+      throw new DocumentedError(
         "Docker engine does not seem to be running locally. Please visit https://docs.docker.com/engine/installation for more information."
       );
     } else {

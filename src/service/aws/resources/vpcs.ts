@@ -1,5 +1,7 @@
 import * as EC2 from "aws-sdk/clients/ec2";
 
+import { DocumentedError } from "../../errors";
+
 export interface Vpc {
   id: string;
   subnetIds: string[];
@@ -19,7 +21,7 @@ export async function getDefaultVpcAndSubnets(region: string): Promise<Vpc> {
   if (!defaultVpc) {
     let defaultVpcCreation = await ec2.createDefaultVpc().promise();
     if (!defaultVpcCreation.Vpc) {
-      throw new Error("Default VPC could not be created.");
+      throw new DocumentedError("Default VPC could not be created.");
     }
     defaultVpc = defaultVpcCreation.Vpc;
   }
@@ -31,13 +33,13 @@ export async function getDefaultVpcAndSubnets(region: string): Promise<Vpc> {
     }
   }
   if (!defaultVpc.VpcId) {
-    throw new Error("VPC is missing key properties.");
+    throw new DocumentedError("VPC is missing key properties.");
   }
   return {
     id: defaultVpc.VpcId,
     subnetIds: subnets.map(subnet => {
       if (!subnet.SubnetId) {
-        throw new Error("Subnet is missing key properties.");
+        throw new DocumentedError("Subnet is missing key properties.");
       }
       return subnet.SubnetId;
     })

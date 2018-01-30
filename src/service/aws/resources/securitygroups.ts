@@ -1,6 +1,8 @@
 import * as EC2 from "aws-sdk/clients/ec2";
 import * as tags from "./tags";
 
+import { DocumentedError } from "../../errors";
+
 export interface SecurityGroup {
   id: string;
 }
@@ -22,7 +24,7 @@ export async function createLoadBalancerSecurityGroup(
     })
     .promise();
   if (!securityGroup.GroupId) {
-    throw new Error("ELB security group could not be created.");
+    throw new DocumentedError("ELB security group could not be created.");
   }
   await ec2
     .createTags({
@@ -50,11 +52,13 @@ export async function getDefaultSecurityGroupId(region: string, vpcId: string) {
     !defaultSecurityGroupDescription.SecurityGroups ||
     defaultSecurityGroupDescription.SecurityGroups.length !== 1
   ) {
-    throw new Error("Default security group could not be resolved.");
+    throw new DocumentedError("Default security group could not be resolved.");
   }
   let securityGroup = defaultSecurityGroupDescription.SecurityGroups[0];
   if (!securityGroup.GroupId) {
-    throw new Error("Default security group is missing key properties.");
+    throw new DocumentedError(
+      "Default security group is missing key properties."
+    );
   }
   return securityGroup.GroupId;
 }

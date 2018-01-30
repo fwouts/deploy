@@ -16,6 +16,8 @@ import {
   inputName
 } from "./common";
 
+import { DocumentedError } from "../service/errors";
+
 program
   .command("push [path-to-Dockerfile] [name]")
   .description("Creates a deployment from a codebase. Requires a cluster.")
@@ -47,7 +49,7 @@ program
     "Optional. Environment variables (can be used several times).",
     (keyValue: string, env: { [key: string]: string }) => {
       if (keyValue.indexOf("=") === -1) {
-        throw new Error(
+        throw new DocumentedError(
           `Environment variables must be specified with the format: key=value.`
         );
       }
@@ -79,13 +81,13 @@ program
           dockerfilePath = "./Dockerfile";
         }
         if (!fs.existsSync(dockerfilePath)) {
-          throw new Error(
+          throw new DocumentedError(
             `No Dockerfile found at path ${dockerfilePath}. Please specify one.`
           );
         }
         let clusters = await awsLoader.loadClusters();
         if (clusters.length === 0) {
-          throw new Error(
+          throw new DocumentedError(
             `No clusters are available. Please create one first.`
           );
         }
@@ -117,13 +119,13 @@ program
               if (foundCluster) {
                 if (options.region) {
                   // This should never happen, actually. AWS does not allow several clusters with the same name in the same region.
-                  throw new Error(
+                  throw new DocumentedError(
                     `There are several clusters named ${
                       cluster.name
                     } in the region ${options.region}.`
                   );
                 } else {
-                  throw new Error(
+                  throw new DocumentedError(
                     `There are several clusters named ${
                       cluster.name
                     }. Please use --region to limit results.`
@@ -135,7 +137,9 @@ program
           }
         }
         if (!foundCluster) {
-          throw new Error(`No cluster ${options.cluster} could be found.`);
+          throw new DocumentedError(
+            `No cluster ${options.cluster} could be found.`
+          );
         }
         if (loadBalancers.USD_MIN_PRICE_PER_MONTH[foundCluster.region]) {
           let regionLabel = regions.getRegionLabel(foundCluster.region);

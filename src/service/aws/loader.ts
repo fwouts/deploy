@@ -7,6 +7,8 @@ import * as deploymentNames from "./deployment/names";
 import * as regions from "./resources/regions";
 import * as tags from "./resources/tags";
 
+import { DocumentedError } from "../errors";
+
 export interface Cluster {
   arn: string;
   name: string;
@@ -44,7 +46,7 @@ async function loadClustersFromRegion(region: string): Promise<Cluster[]> {
     return [];
   }
   if (clusterArns.length > 100) {
-    throw new Error(
+    throw new DocumentedError(
       "Found more than 100 clusters. Giving up, this is probably not the right tool!"
     );
   }
@@ -69,7 +71,7 @@ async function loadCluster(
     !cluster.clusterName ||
     cluster.registeredContainerInstancesCount === undefined
   ) {
-    throw new Error("Cluster is missing key properties");
+    throw new DocumentedError("Cluster is missing key properties");
   }
   let names = clusterNames.getResourceNames(cluster.clusterName);
   let autoscaling = new AutoScaling({
@@ -142,7 +144,7 @@ async function loadDeploymentsFromRegion(
   for (let loadBalancer of loadBalancers) {
     if (deploymentIds.has(loadBalancer.deploymentId)) {
       // There are two load balancers for this deployment. This is not expected.
-      throw new Error(
+      throw new DocumentedError(
         `Unexpectedly found two load balancers for deployment ${
           loadBalancer.deploymentId
         }. Not sure what to do, giving up.`

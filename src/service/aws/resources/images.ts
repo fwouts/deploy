@@ -1,5 +1,7 @@
 import * as EC2 from "aws-sdk/clients/ec2";
 
+import { DocumentedError } from "../../errors";
+
 export async function getEcsImageId(region: string): Promise<string> {
   let ec2 = new EC2({
     region: region
@@ -28,7 +30,7 @@ export async function getEcsImageId(region: string): Promise<string> {
     }
   }
   if (!mostRecentEcsOptimizedImage) {
-    throw new Error("Could not find an ECS-optimised image.");
+    throw new DocumentedError("Could not find an ECS-optimised image.");
   }
   return mostRecentEcsOptimizedImage[1];
 }

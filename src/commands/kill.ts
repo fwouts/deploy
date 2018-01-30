@@ -5,6 +5,7 @@ import * as inquirer from "inquirer";
 import * as program from "commander";
 import * as regions from "../service/aws/resources/regions";
 
+import { DocumentedError } from "../service/errors";
 import { checkedEnvironmentAction } from "./common";
 
 program
@@ -20,7 +21,7 @@ program
         analytics.trackEvent(analytics.events.destroyDeploymentCommand());
         let deployments = await awsLoader.loadDeployments();
         if (deployments.length === 0) {
-          throw new Error(`No deployments are available.`);
+          throw new DocumentedError(`No deployments are available.`);
         }
         let foundDeployment: awsLoader.Deployment | null = null;
         if (!name) {
@@ -53,13 +54,13 @@ program
               if (foundDeployment) {
                 if (options.region) {
                   // This should never happen, but you never know.
-                  throw new Error(
+                  throw new DocumentedError(
                     `There are several deployments named ${name} in the region ${
                       options.region
                     }.`
                   );
                 } else {
-                  throw new Error(
+                  throw new DocumentedError(
                     `There are several deployments named ${name}. Please use --region to limit results.`
                   );
                 }
@@ -69,7 +70,7 @@ program
           }
         }
         if (!foundDeployment) {
-          throw new Error(`No deployment ${name} could be found.`);
+          throw new DocumentedError(`No deployment ${name} could be found.`);
         }
         await analytics.trackCall("Destroy Deployment", () =>
           awsDeployment.destroy(

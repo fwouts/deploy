@@ -6,6 +6,7 @@ import * as program from "commander";
 import * as regions from "../service/aws/resources/regions";
 import * as route53 from "../service/aws/route53";
 
+import { DocumentedError } from "../service/errors";
 import { checkedEnvironmentAction } from "./common";
 
 const DOMAIN_REGEX = /^([a-z0-9]+\.)+[a-z]+$/;
@@ -61,13 +62,13 @@ program
               if (foundDeployment) {
                 if (options.region) {
                   // This should never happen, but you never know.
-                  throw new Error(
+                  throw new DocumentedError(
                     `There are several deployments named ${deploymentId} in the region ${
                       options.region
                     }.`
                   );
                 } else {
-                  throw new Error(
+                  throw new DocumentedError(
                     `There are several deployments named ${deploymentId}. Please use --region to limit results.`
                   );
                 }
@@ -77,7 +78,9 @@ program
           }
         }
         if (!foundDeployment) {
-          throw new Error(`No deployment ${deploymentId} could be found.`);
+          throw new DocumentedError(
+            `No deployment ${deploymentId} could be found.`
+          );
         }
         if (!domain) {
           let answers = await inquirer.prompt([
@@ -96,7 +99,7 @@ program
           domain = answers["domain"] as string;
         }
         if (!domain.match(DOMAIN_REGEX)) {
-          throw new Error(`${domain} is not a valid domain name.`);
+          throw new DocumentedError(`${domain} is not a valid domain name.`);
         }
         let tldDotPosition = domain.lastIndexOf(".");
         let rootDomainDotPosition = domain.lastIndexOf(".", tldDotPosition - 1);

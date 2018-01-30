@@ -1,6 +1,8 @@
 import * as ECS from "aws-sdk/clients/ecs";
 import * as loader from "../loader";
 
+import { DocumentedError } from "../../errors";
+
 export interface Service {
   arn: string;
   name: string;
@@ -35,11 +37,11 @@ export async function createService(
     })
     .promise();
   if (!serviceCreation.service) {
-    throw new Error("Service could not be created.");
+    throw new DocumentedError("Service could not be created.");
   }
   let service = serviceCreation.service;
   if (!service.serviceArn || !service.serviceName) {
-    throw new Error("Service is missing key properties.");
+    throw new DocumentedError("Service is missing key properties.");
   }
   return {
     arn: service.serviceArn,

@@ -2,6 +2,8 @@ import * as ELBv2 from "aws-sdk/clients/elbv2";
 import * as Route53 from "aws-sdk/clients/route53";
 import * as console from "../console";
 
+import { DocumentedError } from "../errors";
+
 export async function map(
   region: string,
   deploymentId: string,
@@ -15,7 +17,7 @@ export async function map(
     })
     .promise();
   if (hostedZonesList.HostedZones.length === 0) {
-    throw new Error("No hosted zone in Route 53 for " + rootDomain);
+    throw new DocumentedError("No hosted zone in Route 53 for " + rootDomain);
   }
   let hostedZoneId = hostedZonesList.HostedZones[0].Id;
   let elbName = deploymentId + "-loadbalancer";
@@ -31,11 +33,13 @@ export async function map(
     !loadBalancersDescription.LoadBalancers ||
     loadBalancersDescription.LoadBalancers.length === 0
   ) {
-    throw new Error("No load balancer found for deployment: " + deploymentId);
+    throw new DocumentedError(
+      "No load balancer found for deployment: " + deploymentId
+    );
   }
   let loadBalancer = loadBalancersDescription.LoadBalancers[0];
   if (!loadBalancer.DNSName || !loadBalancer.CanonicalHostedZoneId) {
-    throw new Error("Load balancer is missing key properties.");
+    throw new DocumentedError("Load balancer is missing key properties.");
   }
   await route53
     .changeResourceRecordSets({
@@ -73,7 +77,7 @@ export async function unmap(
     })
     .promise();
   if (hostedZonesList.HostedZones.length === 0) {
-    throw new Error("No hosted zone in Route 53 for " + rootDomain);
+    throw new DocumentedError("No hosted zone in Route 53 for " + rootDomain);
   }
   let hostedZoneId = hostedZonesList.HostedZones[0].Id;
   let recordName =
@@ -88,11 +92,11 @@ export async function unmap(
     !recordSetsList.ResourceRecordSets ||
     recordSetsList.ResourceRecordSets.length === 0
   ) {
-    throw new Error(`No record set found for ${recordName}`);
+    throw new DocumentedError(`No record set found for ${recordName}`);
   }
   let recordSet = recordSetsList.ResourceRecordSets[0];
   if (recordSet.Name !== recordName) {
-    throw new Error(`No record set found for ${recordName}`);
+    throw new DocumentedError(`No record set found for ${recordName}`);
   }
   await route53
     .changeResourceRecordSets({

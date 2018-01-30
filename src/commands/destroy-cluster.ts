@@ -4,6 +4,7 @@ import * as awsLoader from "../service/aws/loader";
 import * as inquirer from "inquirer";
 import * as program from "commander";
 
+import { DocumentedError } from "../service/errors";
 import { checkedEnvironmentAction } from "./common";
 
 program
@@ -19,7 +20,7 @@ program
         analytics.trackEvent(analytics.events.destroyClusterCommand());
         let clusters = await awsLoader.loadClusters();
         if (clusters.length === 0) {
-          throw new Error(`No clusters are available.`);
+          throw new DocumentedError(`No clusters are available.`);
         }
         let foundCluster: awsLoader.Cluster | null = null;
         if (!name) {
@@ -48,13 +49,13 @@ program
               if (foundCluster) {
                 if (options.region) {
                   // This should never happen, actually. AWS does not allow several clusters with the same name in the same region.
-                  throw new Error(
+                  throw new DocumentedError(
                     `There are several clusters named ${
                       cluster.name
                     } in the region ${options.region}.`
                   );
                 } else {
-                  throw new Error(
+                  throw new DocumentedError(
                     `There are several clusters named ${
                       cluster.name
                     }. Please use --region to limit results.`
@@ -66,7 +67,7 @@ program
           }
         }
         if (!foundCluster) {
-          throw new Error(`No cluster ${name} could be found.`);
+          throw new DocumentedError(`No cluster ${name} could be found.`);
         }
         await analytics.trackCall("Destroy Cluster", () =>
           awsCluster.destroy(foundCluster!.region, foundCluster!.name)

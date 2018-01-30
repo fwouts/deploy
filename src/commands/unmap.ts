@@ -4,6 +4,7 @@ import * as inquirer from "inquirer";
 import * as program from "commander";
 import * as route53 from "../service/aws/route53";
 
+import { DocumentedError } from "../service/errors";
 import { checkedEnvironmentAction } from "./common";
 
 const DOMAIN_REGEX = /^([a-z0-9]+\.)+[a-z]+$/;
@@ -32,7 +33,7 @@ program
           domain = answers["domain"] as string;
         }
         if (!domain.match(DOMAIN_REGEX)) {
-          throw new Error(`${domain} is not a valid domain name.`);
+          throw new DocumentedError(`${domain} is not a valid domain name.`);
         }
         let tldDotPosition = domain.lastIndexOf(".");
         let rootDomainDotPosition = domain.lastIndexOf(".", tldDotPosition - 1);

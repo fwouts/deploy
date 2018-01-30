@@ -1,6 +1,8 @@
 import * as ELBv2 from "aws-sdk/clients/elbv2";
 import * as tags from "./tags";
 
+import { DocumentedError } from "../../errors";
+
 export interface TargetGroup {
   arn: string;
   name: string;
@@ -28,11 +30,11 @@ export async function createTargetGroup(
     !targetGroupCreation.TargetGroups ||
     targetGroupCreation.TargetGroups.length !== 1
   ) {
-    throw new Error("Target group could not be created.");
+    throw new DocumentedError("Target group could not be created.");
   }
   let targetGroup = targetGroupCreation.TargetGroups[0];
   if (!targetGroup.TargetGroupArn || !targetGroup.TargetGroupName) {
-    throw new Error("Target group is missing key properties.");
+    throw new DocumentedError("Target group is missing key properties.");
   }
   await elb
     .addTags({
