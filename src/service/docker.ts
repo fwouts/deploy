@@ -49,15 +49,13 @@ export async function getExposedPort(tag: string): Promise<number> {
       continue;
     }
     if (exposedPort !== null) {
-      throw new DocumentedError(
-        "Docker image should expose exactly one TCP port."
-      );
+      throw new DocumentedError("Dockerfile should only expose one TCP port.");
     }
     exposedPort = parseInt(port, 10);
   }
   if (exposedPort === null) {
     throw new DocumentedError(
-      "Docker image should expose exactly one TCP port."
+      "Dockerfile should expose a TCP port. See https://docs.docker.com/engine/reference/builder/#expose"
     );
   }
   return exposedPort;
