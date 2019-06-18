@@ -51,7 +51,7 @@
     "imports-loader": "^0.7.1",
     "nodemon": "^1.14.11",
     "rimraf": "^2.6.2",
-    "ts-loader": "^3.3.1",
+    "ts-loader": "^6.0.3",
     "ts-node": "^4.1.0",
     "typescript": "^2.7.0-rc",
     "uglifyjs-webpack-plugin": "^1.1.8",
