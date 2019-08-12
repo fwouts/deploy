@@ -52,7 +52,7 @@
     "nodemon": "^1.14.11",
     "rimraf": "^2.6.2",
     "ts-loader": "^3.3.1",
-    "ts-node": "^4.1.0",
+    "ts-node": "^8.3.0",
     "typescript": "^3.5.3",
     "uglifyjs-webpack-plugin": "^1.1.8",
     "webpack": "^3.10.0"
