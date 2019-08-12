@@ -30,7 +30,7 @@
     "chalk": "^2.3.0",
     "commander": "^2.13.0",
     "dockerode": "^2.5.3",
-    "inquirer": "^5.0.1",
+    "inquirer": "^6.5.1",
     "lodash": "^4.17.4",
     "mkdirp": "^0.5.1",
     "package-info": "^3.0.1",
