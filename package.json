@@ -48,7 +48,7 @@
     "@types/mkdirp": "^0.5.2",
     "@types/node": "^9.4.0",
     "@types/uuid": "^3.4.3",
-    "imports-loader": "^0.7.1",
+    "imports-loader": "^0.8.0",
     "nodemon": "^1.14.11",
     "rimraf": "^2.6.2",
     "ts-loader": "^3.3.1",
