@@ -32,7 +32,7 @@
     "dockerode": "^3.0.1",
     "inquirer": "^7.0.0",
     "lodash": "^4.17.4",
-    "mkdirp": "^0.5.1",
+    "mkdirp": "^1.0.3",
     "package-info": "^3.0.1",
     "portfinder": "^1.0.13",
     "source-map-support": "^0.5.3",
